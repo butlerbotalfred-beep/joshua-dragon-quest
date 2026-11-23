@@ -1,0 +1,88 @@
+{
+  "resource": "text-to-3d",
+  "task": {
+    "id": "01a1ff61-347d-7542-960c-4fc30641bb85",
+    "type": "text-to-3d-refine",
+    "name": "",
+    "status": "SUCCEEDED",
+    "progress": 100,
+    "preceding_tasks": 0,
+    "created_at": 1795285922963,
+    "started_at": 1795285922973,
+    "finished_at": 1795285956321,
+    "expires_at": 0,
+    "task_error": null,
+    "model_urls": {
+      "glb": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/model.glb?Expires=4948819200&Signature=IhcpQ2~dd6ec5fRkH-bGvvWZ2hxDV-nuf4UD7gCu~Z-TS3eCQJZl-DWS2dYcOU7Rx6ZPvPwg251vHxUEuzn8ZSWuTg1eN0oOIkygCHgif3tQupwWtUHyNgWgSjpvvBB93TFshU4HMwb-qEV6F40fiGtv~9cHndwIlx8A~L3113Q0nwSK2Bj9aDs0V4~r~yPZ5uR2U4qFf6P3I7NT-pJGiYfYPDGMad-iy1iYYgANQBUFzfu~ZpoOy0NuAOzyeviaVGKCikRjvhJm1ktX~IFedk6iwJxN5dDfFlK6J7UhHnpqhDUyDUqZ5-3fWq-VpQjK4hXBAN4aoAzRqT7bcZBWng__&Key-Pair-Id=K1VGYTHIYLM9UM"
+    },
+    "texture_urls": [
+      {
+        "base_color": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0.png?Expires=4948819200&Signature=V0P~drP29MnhBDHE8F7bLc4iZ1yxCoiYxKcVoMnOTa2j8GVORYv0~-51sYisqPkG4gnl38ZWy~WfCH7~97g2hPalJMimymmfqckpspAE5OMEX7uzi00MYx5L84vpo80io0aHFT9pdCjnAL5hGVC2nvJnrSLQRvWsjlgXBLwHt-5GnjW4ok43hL6PKphJXyUKS~jqD-Ty2rhXZxwb9ICEEf-u-cbw-GfWVpcj2Dvd3OLPSSTqlu5t-bYneTPpZC1zPFSei1yEsVyEvSSqyYQgaZ6McDg9cYXusKVkOsEa7uDhLCpxfh5H8UiEc4jTFgJlYhmpq6WWEjvKvUzQRe-Clg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+        "metallic": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0_metallic.png?Expires=4948819200&Signature=Sb0wJ~-6VXrlphizI0hTrXnSKl0j~o1bQLq8UwbTmH3S6H0UZP2MUThtyY3209nnLG0nR9Y68OqhjbXNGtuKIrBlsalBpOV9jIQCPgXRTrwLDO20jq3dGuh0nvf6vMPp0DyaEfIOksh9UL6CDWrJSwyZcfAQCXdTSmqieOKd4RSRFZyGVJlCxMZh9Ug8v2gOE24lDqkth15H-I8rtAzoEc18jQRBAfOAbyTGciOYL1Mn8zQlJZeZT3rkmR1~4LHhp7wbQn9i6m6yVVXklAZKjPcbFB~tU~O74Kdsis7YjX0LOzCOto9W1Jl5BTplIcSnrdxyLaXAfl~hHHEtLcJktg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+        "normal": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0_normal.png?Expires=4948819200&Signature=ksB4dIh5JjBi8VnmLLvs6AMATlrs03CKVdH8CZ4fLA4nYLc4RvqAVOR3H9N02e3LFR7T6jgTVsSK~B4uxgHWzL0-5cc~DJhSvTY~9tEvN~dN~i9nhwwLV~dzh0hNB73OawIiVRHOaPWA8GiPlcCPhVY~8IJaqN-HNO2VaLwi5wXWljXYyxEQqGJabNqRRpNWSVpzveLe6sks4a3tbSDGf6~rOcItvm0J3SbOV2WxM4KuyujAIMlXdvBzJTQ3Xtau~oFSyNIqfl~1KzUDgkd8OM0pZLvOr1FffAB53HdCAJtDwKKeNXHxfccnyls8EBAnoavWUq5FlPYBa-E3oLNtVg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+        "roughness": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0_roughness.png?Expires=4948819200&Signature=Y9rXZ6zsIfXjFZ-jTb8YU48QeakmJmKPlPz3jT~iBAqTTn3uX5WBset0Tn6cFJhqc523Ydo7fbPumDSIVMmBJrL8N065Bj58vwFLexKo0m27K4TdoMchtkyh4akv~gVdlJfqiBj6CEcdD3lKQmDiGARa3qkQ7HGJQSYHYUadhVCF4bZ8uOV98Ywn3cawq9suwbmcBo8GoZFo3qYlXbJe5gV3Jr3ya441FtkDd3gFg4KGzjMT3~KIvznPi~UwYKhMmbwGATbhhogTxvMwvGMsyl9UT3dxYZcHXDZpch3IiG1jz-WWnWpibteAwc8rWTNoCvArnY18U0TnX9ZdOMpKAg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+      }
+    ],
+    "thumbnail_url": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/preview.png?Expires=4948819200&Signature=hKHi15RHfiqaJljhySEykYgzOxMa1ybUWvl4VSiCJsnd1YQ0Nw5y6Mg4WOufKhlC6gx-tprWYio-4~pGyReLFO32tiinFrIga3DXKUaMbO2de1o7mDkmY9H3JezVpsiBw2v0INSb73ZsXDMsflgrMKhlp5MVyKrgcuPu33lQxtKfHg5v5OArf~kz4VpAuQdF9ahJTVlAyF7vSTqhZMbFt5eLmuo2oW0fhPp1u~7uKzcVTEhV0XIlsPf6pJGGyOqt6I77nB~5Y9mVWANtfH19YAtLK47jjQbc3-w0iMU8XLN562EEDYeSrR288n4uD6NAROkqhgMDSPUMJV0qOE7-2Q__&Key-Pair-Id=K1VGYTHIYLM9UM",
+    "consumed_credits": 10,
+    "prompt": "Stylized retro fantasy 3D game boss, The Yeti, massive shaggy snow-white mountain beast with pale blue frost crystal horns, broad shoulders, fierce expressive face, Nintendo 3D adventure boss style",
+    "texture_prompt": "",
+    "texture_image_url": "",
+    "mode": "refine",
+    "model_type": "smart-topology",
+    "seed": 1373564754,
+    "input": {
+      "enable_pbr": true,
+      "mode": "refine",
+      "preview_task_id": "01a1ff60-e8b4-7205-b90f-a6138c890c37",
+      "target_formats": [
+        "glb"
+      ],
+      "texture_resolution": "2k"
+    },
+    "output": {
+      "seed": 1373564754,
+      "model_urls": {
+        "glb": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/model.glb?Expires=4948819200&Signature=IhcpQ2~dd6ec5fRkH-bGvvWZ2hxDV-nuf4UD7gCu~Z-TS3eCQJZl-DWS2dYcOU7Rx6ZPvPwg251vHxUEuzn8ZSWuTg1eN0oOIkygCHgif3tQupwWtUHyNgWgSjpvvBB93TFshU4HMwb-qEV6F40fiGtv~9cHndwIlx8A~L3113Q0nwSK2Bj9aDs0V4~r~yPZ5uR2U4qFf6P3I7NT-pJGiYfYPDGMad-iy1iYYgANQBUFzfu~ZpoOy0NuAOzyeviaVGKCikRjvhJm1ktX~IFedk6iwJxN5dDfFlK6J7UhHnpqhDUyDUqZ5-3fWq-VpQjK4hXBAN4aoAzRqT7bcZBWng__&Key-Pair-Id=K1VGYTHIYLM9UM"
+      },
+      "thumbnail_url": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/preview.png?Expires=4948819200&Signature=hKHi15RHfiqaJljhySEykYgzOxMa1ybUWvl4VSiCJsnd1YQ0Nw5y6Mg4WOufKhlC6gx-tprWYio-4~pGyReLFO32tiinFrIga3DXKUaMbO2de1o7mDkmY9H3JezVpsiBw2v0INSb73ZsXDMsflgrMKhlp5MVyKrgcuPu33lQxtKfHg5v5OArf~kz4VpAuQdF9ahJTVlAyF7vSTqhZMbFt5eLmuo2oW0fhPp1u~7uKzcVTEhV0XIlsPf6pJGGyOqt6I77nB~5Y9mVWANtfH19YAtLK47jjQbc3-w0iMU8XLN562EEDYeSrR288n4uD6NAROkqhgMDSPUMJV0qOE7-2Q__&Key-Pair-Id=K1VGYTHIYLM9UM",
+      "alpha_thumbnail_url": null,
+      "texture_urls": [
+        {
+          "base_color": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0.png?Expires=4948819200&Signature=V0P~drP29MnhBDHE8F7bLc4iZ1yxCoiYxKcVoMnOTa2j8GVORYv0~-51sYisqPkG4gnl38ZWy~WfCH7~97g2hPalJMimymmfqckpspAE5OMEX7uzi00MYx5L84vpo80io0aHFT9pdCjnAL5hGVC2nvJnrSLQRvWsjlgXBLwHt-5GnjW4ok43hL6PKphJXyUKS~jqD-Ty2rhXZxwb9ICEEf-u-cbw-GfWVpcj2Dvd3OLPSSTqlu5t-bYneTPpZC1zPFSei1yEsVyEvSSqyYQgaZ6McDg9cYXusKVkOsEa7uDhLCpxfh5H8UiEc4jTFgJlYhmpq6WWEjvKvUzQRe-Clg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "metallic": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0_metallic.png?Expires=4948819200&Signature=Sb0wJ~-6VXrlphizI0hTrXnSKl0j~o1bQLq8UwbTmH3S6H0UZP2MUThtyY3209nnLG0nR9Y68OqhjbXNGtuKIrBlsalBpOV9jIQCPgXRTrwLDO20jq3dGuh0nvf6vMPp0DyaEfIOksh9UL6CDWrJSwyZcfAQCXdTSmqieOKd4RSRFZyGVJlCxMZh9Ug8v2gOE24lDqkth15H-I8rtAzoEc18jQRBAfOAbyTGciOYL1Mn8zQlJZeZT3rkmR1~4LHhp7wbQn9i6m6yVVXklAZKjPcbFB~tU~O74Kdsis7YjX0LOzCOto9W1Jl5BTplIcSnrdxyLaXAfl~hHHEtLcJktg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "roughness": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0_roughness.png?Expires=4948819200&Signature=Y9rXZ6zsIfXjFZ-jTb8YU48QeakmJmKPlPz3jT~iBAqTTn3uX5WBset0Tn6cFJhqc523Ydo7fbPumDSIVMmBJrL8N065Bj58vwFLexKo0m27K4TdoMchtkyh4akv~gVdlJfqiBj6CEcdD3lKQmDiGARa3qkQ7HGJQSYHYUadhVCF4bZ8uOV98Ywn3cawq9suwbmcBo8GoZFo3qYlXbJe5gV3Jr3ya441FtkDd3gFg4KGzjMT3~KIvznPi~UwYKhMmbwGATbhhogTxvMwvGMsyl9UT3dxYZcHXDZpch3IiG1jz-WWnWpibteAwc8rWTNoCvArnY18U0TnX9ZdOMpKAg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "normal": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-347d-7542-960c-4fc30641bb85/output/texture_0_normal.png?Expires=4948819200&Signature=ksB4dIh5JjBi8VnmLLvs6AMATlrs03CKVdH8CZ4fLA4nYLc4RvqAVOR3H9N02e3LFR7T6jgTVsSK~B4uxgHWzL0-5cc~DJhSvTY~9tEvN~dN~i9nhwwLV~dzh0hNB73OawIiVRHOaPWA8GiPlcCPhVY~8IJaqN-HNO2VaLwi5wXWljXYyxEQqGJabNqRRpNWSVpzveLe6sks4a3tbSDGf6~rOcItvm0J3SbOV2WxM4KuyujAIMlXdvBzJTQ3Xtau~oFSyNIqfl~1KzUDgkd8OM0pZLvOr1FffAB53HdCAJtDwKKeNXHxfccnyls8EBAnoavWUq5FlPYBa-E3oLNtVg__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "metallic_roughness": null,
+          "emission": null
+        }
+      ]
+    }
+  },
+  "saved_files": [
+    "/Users/mike/Documents/Dragon Quest/assets/3d/enemies/yeti.glb"
+  ],
+  "skipped": [
+    {
+      "key": "thumbnail.primary",
+      "reason": "not_selected"
+    },
+    {
+      "key": "texture.0.base_color",
+      "reason": "embedded_textures"
+    },
+    {
+      "key": "texture.0.metallic",
+      "reason": "embedded_textures"
+    },
+    {
+      "key": "texture.0.normal",
+      "reason": "embedded_textures"
+    },
+    {
+      "key": "texture.0.roughness",
+      "reason": "embedded_textures"
+    }
+  ],
+  "downloaded_at": "2026-11-21T18:32:46.095Z"
+}

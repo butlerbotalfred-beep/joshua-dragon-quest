@@ -1,0 +1,88 @@
+{
+  "resource": "text-to-3d",
+  "task": {
+    "id": "01a1ff61-5a0e-76fc-a89e-01c1756506ae",
+    "type": "text-to-3d-refine",
+    "name": "",
+    "status": "SUCCEEDED",
+    "progress": 100,
+    "preceding_tasks": 0,
+    "created_at": 1795285932578,
+    "started_at": 1795285932587,
+    "finished_at": 1795285956520,
+    "expires_at": 0,
+    "task_error": null,
+    "model_urls": {
+      "glb": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/model.glb?Expires=4948819200&Signature=aKKlbG01P0UUA1rSOcOSH-pARVEud~mb44OIYXsUeAuKQTwqLW-HfAqxxyx4QjVc3x0jCzt55IWDtAfyQiEhhG5e2oxWGt8t802AwD6Rbb2h~B3PDnjD-BhpWNbnGAFiFqvfUtVZWgjbrdqnHz6xMW5PzXw8bW2oUASZaMH~Uid6hOPMf2j~YKZ2az1PB-OwUdR49mRmeAyXti-xW8jK-USVSLk6N6SRf927vQbHqTu77d0oXQFYrE89-~2ljyVHzoTmonkuLC81ipwcF~5l9k35Hw~pY4eD8-4JenJ9qFZbpb-WiIas6T-gO8RJYMLMWpehuw2W4chSEMzHBhdKdw__&Key-Pair-Id=K1VGYTHIYLM9UM"
+    },
+    "texture_urls": [
+      {
+        "base_color": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0.png?Expires=4948819200&Signature=ar5EtFc2DM55QaMvz2ksWNkF7Tm9r-xCFI0EMyYpjthFj3Ag46bI8X9VqU3R4~k7I73O14WvUSk93RnupezV8tH4fJy0Kt8ouycVAiVfRb2P9cQjMkbr9kCYjHYj5yrj9HIKvCJvDKGTn0qrj7834S-6JTGrXzsCZveU5bSqw6noG9JogbJc6KSuiLwpcTZ9fNQW1S5gMQB1jJxHD6zLFVhp3KElMyy2nZpf7KCoWK5BdnDvCA9KQ84vrgZ~PewfDvQZtr9oEFZolw7dmcs8dYRtH3QepyAdKN59OG5ODfD4ASMANT4NwkRhW3xZOu8EEJtga1AkgFCSu~C6WAaAUA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+        "metallic": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0_metallic.png?Expires=4948819200&Signature=PoUv0jBfTBBtitaT9OeZMS07FjT3MxE37T8TWiCR5R-7POfslhh-H6oqMVLUfiWntZTM6nRVdGnIVYqdMvA-XEZGkrQzRVdvoVl1-8SDSGu7u4wTooozsdDSctpgP5Piqbc0Tqnskrm6OXkQ0EC4JXDlCcFvvimDb1OiK5kotR4rN7eDE26BhjGR6Rhh47sYQEaVr6uodqOmr6gAz3~m1KiF1t2Bbat0LflMIdVoWqcjmflK1CFf7n7eGau-xoUERexjFlxnrGTIwKhkKOvtkOW0N5VOwEL6hdpbBuFTpv-6fT25eHsxhM8hWXVEUInupOr-G20T9KnWnBi3ESMtqw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+        "normal": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0_normal.png?Expires=4948819200&Signature=i-0p6WtTf5IyBy9lsJIQ2Z4k6mYI0Tj9dZJStShCkI~avW2Zioz612WTU1P3~QcuxkLT92isnSOQMSiIl6XScSsfUpNV8f1ulmGbhCAfYMN4ZFz~Erih-9FLPZR6RQqTW0ykLJikn-2GupFq7mKu~2XOkYAMx8~48e~AsEQhZo23hGg8AykK6MOr7~-ggoA0hMUMVThLlv9qUL0CN7EfzUoNJT2~KRG-sVv~pHkyDGPXgoKnIqK903L6gM0yvLVLcr8HF6bLDYjtoOBAecbqoxTGudbdu8pPCczwmAqdJ4PnB9vC8kKXJBnaen6m7n69yjMD7igTq-mSGO51Ov7pKw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+        "roughness": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0_roughness.png?Expires=4948819200&Signature=XHDMhfbBsRjVkSKjczBSp8YeHm2ONLRd~R9Q54Cp47swJ4hLCSgjPd-73UDM0HjQ5KWqABkZ5Bn7g2OimWCp3F8570mbKRyVn8q~GeJwxtlnpHmA-sOp1~lPmBp7NF52of8PDZ0CqjotcFSIvN5lF53ZY0BYs~gx4ltX~fNLL5HcPsbfooulnMYBzcCEPBS58fZn85mGCdqYzGVLhWvwXwdqQrAF8qbbpSXJrp4V1LAbk3UWZ2xsged61X2m99yDZCnzeUnF2YP-4oWsJRqk~Z2wHS93V~umtdhuwCjKLONf0Wx7WU3HObxpNxh~JPV7L201VPOrYNldkeribFFrRw__&Key-Pair-Id=K1VGYTHIYLM9UM"
+      }
+    ],
+    "thumbnail_url": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/preview.png?Expires=4948819200&Signature=AKqVthDZ8gE1MwVxeX-ExU0nWnkFQu4cLbzBgKTaAkv5LMGqra-dNhEmbSnAeoglQ2exkG1LA2xVmhkFwx4g9I1AnOvzQc6O2RXn0dSlnji3evgI9wdj5eRE6Ftum7myp~HDr-WpamtP-bX9vG-vNmHhzdbbTOmBuaztV0Gm1QNw2OVvHkGuZSRon7-Wlkmkq8r7iG7c0r1c0pXXmvT7KVjt2yN51CR13EbRVoGFXWuNrs2twP4iUI6y22LJQ5jkfdhCp-p0CIonctyBxzO8AgrMgXSK-DmvW2VDHyRzYpha0BkgcatOUBrC8ZSxFnFfjuUes5fRGFKMkfDn39oTBA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+    "consumed_credits": 10,
+    "prompt": "Stylized retro fantasy 3D game NPC, wise mystical Keeper of the Forest sage wearing emerald green leafy woodland cloak, holding glowing wooden staff with mossy lantern, warm benevolent face, Nintendo 3D adventure style",
+    "texture_prompt": "",
+    "texture_image_url": "",
+    "mode": "refine",
+    "model_type": "smart-topology",
+    "seed": 4141497094,
+    "input": {
+      "enable_pbr": true,
+      "mode": "refine",
+      "preview_task_id": "01a1ff60-e889-74b2-8edc-e50c8be6dde1",
+      "target_formats": [
+        "glb"
+      ],
+      "texture_resolution": "2k"
+    },
+    "output": {
+      "seed": 4141497094,
+      "model_urls": {
+        "glb": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/model.glb?Expires=4948819200&Signature=aKKlbG01P0UUA1rSOcOSH-pARVEud~mb44OIYXsUeAuKQTwqLW-HfAqxxyx4QjVc3x0jCzt55IWDtAfyQiEhhG5e2oxWGt8t802AwD6Rbb2h~B3PDnjD-BhpWNbnGAFiFqvfUtVZWgjbrdqnHz6xMW5PzXw8bW2oUASZaMH~Uid6hOPMf2j~YKZ2az1PB-OwUdR49mRmeAyXti-xW8jK-USVSLk6N6SRf927vQbHqTu77d0oXQFYrE89-~2ljyVHzoTmonkuLC81ipwcF~5l9k35Hw~pY4eD8-4JenJ9qFZbpb-WiIas6T-gO8RJYMLMWpehuw2W4chSEMzHBhdKdw__&Key-Pair-Id=K1VGYTHIYLM9UM"
+      },
+      "thumbnail_url": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/preview.png?Expires=4948819200&Signature=AKqVthDZ8gE1MwVxeX-ExU0nWnkFQu4cLbzBgKTaAkv5LMGqra-dNhEmbSnAeoglQ2exkG1LA2xVmhkFwx4g9I1AnOvzQc6O2RXn0dSlnji3evgI9wdj5eRE6Ftum7myp~HDr-WpamtP-bX9vG-vNmHhzdbbTOmBuaztV0Gm1QNw2OVvHkGuZSRon7-Wlkmkq8r7iG7c0r1c0pXXmvT7KVjt2yN51CR13EbRVoGFXWuNrs2twP4iUI6y22LJQ5jkfdhCp-p0CIonctyBxzO8AgrMgXSK-DmvW2VDHyRzYpha0BkgcatOUBrC8ZSxFnFfjuUes5fRGFKMkfDn39oTBA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+      "alpha_thumbnail_url": null,
+      "texture_urls": [
+        {
+          "base_color": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0.png?Expires=4948819200&Signature=ar5EtFc2DM55QaMvz2ksWNkF7Tm9r-xCFI0EMyYpjthFj3Ag46bI8X9VqU3R4~k7I73O14WvUSk93RnupezV8tH4fJy0Kt8ouycVAiVfRb2P9cQjMkbr9kCYjHYj5yrj9HIKvCJvDKGTn0qrj7834S-6JTGrXzsCZveU5bSqw6noG9JogbJc6KSuiLwpcTZ9fNQW1S5gMQB1jJxHD6zLFVhp3KElMyy2nZpf7KCoWK5BdnDvCA9KQ84vrgZ~PewfDvQZtr9oEFZolw7dmcs8dYRtH3QepyAdKN59OG5ODfD4ASMANT4NwkRhW3xZOu8EEJtga1AkgFCSu~C6WAaAUA__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "metallic": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0_metallic.png?Expires=4948819200&Signature=PoUv0jBfTBBtitaT9OeZMS07FjT3MxE37T8TWiCR5R-7POfslhh-H6oqMVLUfiWntZTM6nRVdGnIVYqdMvA-XEZGkrQzRVdvoVl1-8SDSGu7u4wTooozsdDSctpgP5Piqbc0Tqnskrm6OXkQ0EC4JXDlCcFvvimDb1OiK5kotR4rN7eDE26BhjGR6Rhh47sYQEaVr6uodqOmr6gAz3~m1KiF1t2Bbat0LflMIdVoWqcjmflK1CFf7n7eGau-xoUERexjFlxnrGTIwKhkKOvtkOW0N5VOwEL6hdpbBuFTpv-6fT25eHsxhM8hWXVEUInupOr-G20T9KnWnBi3ESMtqw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "roughness": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0_roughness.png?Expires=4948819200&Signature=XHDMhfbBsRjVkSKjczBSp8YeHm2ONLRd~R9Q54Cp47swJ4hLCSgjPd-73UDM0HjQ5KWqABkZ5Bn7g2OimWCp3F8570mbKRyVn8q~GeJwxtlnpHmA-sOp1~lPmBp7NF52of8PDZ0CqjotcFSIvN5lF53ZY0BYs~gx4ltX~fNLL5HcPsbfooulnMYBzcCEPBS58fZn85mGCdqYzGVLhWvwXwdqQrAF8qbbpSXJrp4V1LAbk3UWZ2xsged61X2m99yDZCnzeUnF2YP-4oWsJRqk~Z2wHS93V~umtdhuwCjKLONf0Wx7WU3HObxpNxh~JPV7L201VPOrYNldkeribFFrRw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "normal": "https://assets.meshy.ai/f14cb705-2841-42ee-8e53-0aa96d913e79/tasks/01a1ff61-5a0e-76fc-a89e-01c1756506ae/output/texture_0_normal.png?Expires=4948819200&Signature=i-0p6WtTf5IyBy9lsJIQ2Z4k6mYI0Tj9dZJStShCkI~avW2Zioz612WTU1P3~QcuxkLT92isnSOQMSiIl6XScSsfUpNV8f1ulmGbhCAfYMN4ZFz~Erih-9FLPZR6RQqTW0ykLJikn-2GupFq7mKu~2XOkYAMx8~48e~AsEQhZo23hGg8AykK6MOr7~-ggoA0hMUMVThLlv9qUL0CN7EfzUoNJT2~KRG-sVv~pHkyDGPXgoKnIqK903L6gM0yvLVLcr8HF6bLDYjtoOBAecbqoxTGudbdu8pPCczwmAqdJ4PnB9vC8kKXJBnaen6m7n69yjMD7igTq-mSGO51Ov7pKw__&Key-Pair-Id=K1VGYTHIYLM9UM",
+          "metallic_roughness": null,
+          "emission": null
+        }
+      ]
+    }
+  },
+  "saved_files": [
+    "/Users/mike/Documents/Dragon Quest/assets/3d/characters/keeper_of_the_forest.glb"
+  ],
+  "skipped": [
+    {
+      "key": "thumbnail.primary",
+      "reason": "not_selected"
+    },
+    {
+      "key": "texture.0.base_color",
+      "reason": "embedded_textures"
+    },
+    {
+      "key": "texture.0.metallic",
+      "reason": "embedded_textures"
+    },
+    {
+      "key": "texture.0.normal",
+      "reason": "embedded_textures"
+    },
+    {
+      "key": "texture.0.roughness",
+      "reason": "embedded_textures"
+    }
+  ],
+  "downloaded_at": "2026-11-21T18:32:45.922Z"
+}

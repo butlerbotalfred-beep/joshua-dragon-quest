@@ -1,0 +1,32 @@
+{
+  "task_id": "d7a14a73-0eaf-457b-9bb6-d45fe30c4bb1",
+  "type": "text_to_model",
+  "status": "success",
+  "input": {
+    "pbr": false,
+    "prompt": "Stylized retro fantasy 3D game prop, giant heavy cracked mossy woodland boulder rock obstacle, warm gray stone with green moss patches, hand-painted low-poly Nintendo adventure style",
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 3500,
+    "model_version": "v3.1-20260211",
+    "smart_low_poly": true,
+    "texture_quality": "fast",
+    "texture_version": "v3.5-20260815",
+    "geometry_quality": "standard",
+    "texture_alignment": "geometry"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url",
+    "generated_image_url"
+  ],
+  "credits_consumed": 30,
+  "created_at": "2026-11-21T18:31:38.788796Z",
+  "completed_at": "2026-11-21T18:34:25.591833Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "generated_image.jpeg",
+    "preview.png"
+  ]
+}

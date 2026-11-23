@@ -1,0 +1,32 @@
+{
+  "task_id": "e862ab66-70a7-4405-a7c9-07e86660b3de",
+  "type": "text_to_model",
+  "status": "success",
+  "input": {
+    "pbr": false,
+    "prompt": "Stylized retro fantasy 3D game prop, glowing amethyst purple dragon egg with armored geometric scales and royal gold ridges, vibrant hand-painted low-poly Nintendo adventure style, clean silhouette on plain background",
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 4000,
+    "model_version": "v3.1-20260211",
+    "smart_low_poly": true,
+    "texture_quality": "fast",
+    "texture_version": "v3.5-20260815",
+    "geometry_quality": "standard",
+    "texture_alignment": "geometry"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url",
+    "generated_image_url"
+  ],
+  "credits_consumed": 30,
+  "created_at": "2026-11-21T17:37:49.848381Z",
+  "completed_at": "2026-11-21T17:41:12.208827Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "generated_image.jpeg",
+    "preview.png"
+  ]
+}

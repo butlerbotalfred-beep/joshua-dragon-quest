@@ -1,0 +1,32 @@
+{
+  "task_id": "def1f7c2-7358-4af1-9e21-6aa455a8e90e",
+  "type": "text_to_model",
+  "status": "success",
+  "input": {
+    "pbr": false,
+    "prompt": "Stylized fairytale Royal Mountain Castle, charming stone keep with four pointed sapphire blue spire towers, arched wooden gate, golden flags and banners, hand-painted low-poly Nintendo Zelda style",
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 6000,
+    "model_version": "v3.1-20260211",
+    "smart_low_poly": true,
+    "texture_quality": "fast",
+    "texture_version": "v3.5-20260815",
+    "geometry_quality": "standard",
+    "texture_alignment": "geometry"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url",
+    "generated_image_url"
+  ],
+  "credits_consumed": 30,
+  "created_at": "2026-11-21T18:11:57.645765Z",
+  "completed_at": "2026-11-21T18:15:19.640541Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "generated_image.jpeg",
+    "preview.png"
+  ]
+}

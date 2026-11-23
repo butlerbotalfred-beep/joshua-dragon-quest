@@ -1,0 +1,32 @@
+{
+  "task_id": "0042bae9-9469-4c50-b94a-05bfb59ccd4d",
+  "type": "text_to_model",
+  "status": "success",
+  "input": {
+    "pbr": false,
+    "prompt": "Stylized retro fantasy 3D game prop, thick tangled barrier wall of dark thorny woodland brambles and twisted vines with glowing amber buds, hand-painted low-poly adventure game obstacle",
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 4000,
+    "model_version": "v3.1-20260211",
+    "smart_low_poly": true,
+    "texture_quality": "fast",
+    "texture_version": "v3.5-20260815",
+    "geometry_quality": "standard",
+    "texture_alignment": "geometry"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url",
+    "generated_image_url"
+  ],
+  "credits_consumed": 30,
+  "created_at": "2026-11-21T18:11:55.730574Z",
+  "completed_at": "2026-11-21T18:15:56.303809Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "generated_image.jpeg",
+    "preview.png"
+  ]
+}

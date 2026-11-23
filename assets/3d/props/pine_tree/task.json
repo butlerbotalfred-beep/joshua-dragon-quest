@@ -1,0 +1,32 @@
+{
+  "task_id": "e1045a48-5114-45e9-a4c9-8e733d051e75",
+  "type": "text_to_model",
+  "status": "success",
+  "input": {
+    "pbr": false,
+    "prompt": "Stylized retro fantasy 3D game prop, lush tall woodland pine tree with rich layered emerald foliage and warm gnarled bark trunk, charming hand-painted low-poly Nintendo adventure style",
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 4000,
+    "model_version": "v3.1-20260211",
+    "smart_low_poly": true,
+    "texture_quality": "fast",
+    "texture_version": "v3.5-20260815",
+    "geometry_quality": "standard",
+    "texture_alignment": "geometry"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url",
+    "generated_image_url"
+  ],
+  "credits_consumed": 30,
+  "created_at": "2026-11-21T18:11:51.933343Z",
+  "completed_at": "2026-11-21T18:15:30.264360Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "generated_image.jpeg",
+    "preview.png"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "task_id": "0e01300b-01e2-47ef-989e-0cbee015e451",
+  "type": "text_to_model",
+  "status": "success",
+  "input": {
+    "pbr": false,
+    "prompt": "Stylized retro fantasy 3D game prop, ancient massive dark obsidian stone fortification gate with glowing purple amethyst runes and cracks, hand-painted low-poly Nintendo Zelda style",
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 4000,
+    "model_version": "v3.1-20260211",
+    "smart_low_poly": true,
+    "texture_quality": "fast",
+    "texture_version": "v3.5-20260815",
+    "geometry_quality": "standard",
+    "texture_alignment": "geometry"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url",
+    "generated_image_url"
+  ],
+  "credits_consumed": 30,
+  "created_at": "2026-11-21T18:31:37.322873Z",
+  "completed_at": "2026-11-21T18:34:44.306805Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "generated_image.jpeg",
+    "preview.png"
+  ]
+}
