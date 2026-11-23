@@ -27,7 +27,7 @@ These are decided. Do not reopen them. All three are in `docs/` in this reposito
 - **Content.** Nothing sexual, nothing blasphemous, no gore. Nobody is hurt for real: heroes get back up, and beaten guardians are freed, not killed.
 - **Every level needs every family member.** Each level has four gates, one per gift, and no gate can be walked around, jumped over or skipped.
 - **A six-year-old is never stuck.** On Easy nobody can lose, and a spoken hint plays after 20 seconds without progress.
-- **Spoken, not read.** Story is heard. No screen shows more than eight words of text at once.
+- **Spoken, not read.** Story is heard. No screen shows more than eight words of text at once. All speech and sound effects are made with Fish Audio and nothing else. The music already in the repository stays.
 - **Controller first.** Everything works with an Xbox controller alone, including menus.
 
 ### How to work
@@ -46,8 +46,8 @@ Pause only for the six things below. For each, write the question in `docs/BUILD
 
 | Pause | Why a human is needed | What to do meanwhile |
 | --- | --- | --- |
-| Voice recordings | Only the family can record or approve their own voices | Use plain placeholder speech and keep building |
-| Spending money or credits | Speech, image or model generation that costs Michael anything | Use placeholders |
+| The family's own voices | Only the family can record or approve their own voices | Use a Fish Audio stand-in voice for each family member and keep building |
+| Spending outside Fish Audio | Michael has approved Fish Audio use up to his monthly allowance, so that needs no pause. Anything else that costs him money does, and so does running out of that allowance | Use what Fish Audio and the repository already provide |
 | The Level 2 playtest (milestone 3.4) | Only a real six-year-old can say whether it is fun | Continue to Stage 4. Do not start Stage 5 until the result is in |
 | A content-rule doubt | You are unsure whether something is sexual, blasphemous or gory | Leave it out and continue |
 | Deleting or replacing a family asset | Models, music and recordings the family made or chose | Keep the original and work beside it |
@@ -90,7 +90,7 @@ Every item here is a bug the audit confirmed.
 | 2.5 Companions | In solo play the other three follow, come when called and help gently. They never open a gate by themselves and never do more than a quarter of the work in a fight\* | The bot stands still at each gate for two minutes and the gate stays shut. Fight logs show companions under a quarter of the total |
 | 2.6 Two players | Two controllers share one screen, and neither player can leave the other's view | Two bots walk in opposite directions for 30 seconds and both are still on screen |
 | 2.7 Hints | After 20 seconds\* without progress, the Keeper speaks a hint that names the family member needed | The bot waits at each gate and the correct hint plays |
-| 2.8 Speech | Every spoken line lives in one data file, `data/dialogue.json`, with its speaker and its sound file. A line with no recording yet plays as placeholder speech. Captions show at most eight words at a time | A test compares the file with the story draft: every line is present, word for word, and no caption is over eight words |
+| 2.8 Speech | Every spoken line lives in one data file, `data/dialogue.json`, with its speaker and its sound file. Every line has a sound file made with Fish Audio. The Keeper, Renee, the Great Black Dragon and the Narrator each get one voice, chosen once and written in the log. Family members use stand-in voices until their own arrive. Captions show at most eight words at a time | A test compares the file with the story draft: every line is present, word for word, and no caption is over eight words |
 
 ### Stage 3: Level 2, made right
 
@@ -136,7 +136,7 @@ Build them in this order: Level 1, 3, 4, 5, then 6. Each level repeats the first
 | Milestone | Finished looks like | How it is checked |
 | --- | --- | --- |
 | 7.1 Recording script | `docs/recording-script.md` lists every line by speaker, with the file name each recording must have | The line count per speaker matches `data/dialogue.json` |
-| 7.2 Voices in | **Pause** for the recordings or approved voices. When they arrive, each file is trimmed, set to an even loudness and wired in | Every line in the data file has a sound file that plays, and none is still placeholder speech |
+| 7.2 Voices in | **Pause** for a recording of each family member. When they arrive, clone each voice in Fish Audio and remake that person's lines. Every file is trimmed and set to an even loudness | Every line in the data file has a sound file that plays, and no family line still uses a stand-in voice |
 
 ### Stage 8: Final acceptance
 
@@ -199,5 +199,5 @@ The story draft and the decision cards settle what the game is. They do not give
 None of these stops the builds from starting.
 
 - How Joshua, Daniel, Vanessa and Michael each talk. Until then the placeholder lines in the story draft are used.
-- The voice recordings, or approved cloned voices, for Stage 7.
+- A clean recording of each family member, so Fish Audio can clone their voices for Stage 7.
 - A session with Joshua for the Level 2 playtest on each build.
