@@ -27,7 +27,7 @@ These are decided. Do not reopen them. All three are in `docs/` in this reposito
 - **Content.** Nothing sexual, nothing blasphemous, no gore. Nobody is hurt for real: heroes get back up, and beaten guardians are freed, not killed.
 - **Every level needs every family member.** Each level has four gates, one per gift, and no gate can be walked around, jumped over or skipped.
 - **A six-year-old is never stuck.** On Easy nobody can lose, and a spoken hint plays after 20 seconds without progress.
-- **Spoken, not read.** Story is heard. No screen shows more than eight words of text at once. All speech and sound effects are made with Fish Audio and nothing else. Music is different: it is made with Suno and supplied to you in `assets/audio/`, the same tracks for both builds. Use those tracks, one per place or moment as their file names say, and do not make or replace music.
+- **Spoken, not read.** Story is heard. No screen shows more than eight words of text at once. All speech and sound effects are made with Fish Audio and nothing else. Music is different: it is made with Suno and supplied to you in `assets/audio/`, the same tracks for both builds. Use those tracks, one per place or moment as listed in `assets/audio/README.md`, and do not make or replace music. Load only the track for the current place so music does not count against the first load.
 - **Controller first.** Everything works with an Xbox controller alone, including menus.
 
 ### How to work
