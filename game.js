@@ -383,6 +383,7 @@ class TextureFactory {
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.userData.shared = true;
     this.cache[biome] = tex;
     return tex;
   }
@@ -415,6 +416,7 @@ class TextureFactory {
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.userData.shared = true;
     this.cache[key] = tex;
     return tex;
   }
@@ -547,6 +549,63 @@ class AudioSystem {
   }
 }
 
+// A soft glow that looks like a small light. Real point lights made every
+// shader in the game rebuild whenever one appeared or went away, and each
+// rebuilt shader stayed in memory, so glows are drawn as pictures instead.
+let glowTexture = null;
+function glowLight(color, intensity = 1, distance = 8) {
+  if (!glowTexture) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.35, 'rgba(255,255,255,0.45)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    glowTexture = new THREE.CanvasTexture(c);
+  }
+  const mat = new THREE.SpriteMaterial({
+    map: glowTexture, color, transparent: true, opacity: Math.min(0.55, 0.18 * intensity),
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.setScalar(distance * 0.6);
+  return sprite;
+}
+
+function materialTextures(m) {
+  const out = [];
+  for (const key in m) {
+    const v = m[key];
+    if (v && v.isTexture) out.push(v);
+  }
+  return out;
+}
+
+function markMaterialShared(m) {
+  m.userData.shared = true;
+  for (const t of materialTextures(m)) t.userData.shared = true;
+}
+
+// Frees the GPU memory held by everything under `root`. Models loaded from
+// files keep their data in memory, so anything still needed is simply sent to
+// the graphics card again the next time it is drawn.
+function disposeTree(root) {
+  root.traverse((obj) => {
+    if (obj.geometry) obj.geometry.dispose();
+    const mats = Array.isArray(obj.material) ? obj.material : obj.material ? [obj.material] : [];
+    for (const m of mats) {
+      for (const t of materialTextures(m)) t.dispose();
+      m.dispose();
+    }
+    if (obj.isLight && obj.shadow && obj.shadow.map) obj.shadow.map.dispose();
+    // A rigged model keeps its bones in a small texture of its own.
+    if (obj.isSkinnedMesh && obj.skeleton) obj.skeleton.dispose();
+  });
+}
+
 // ============================================================================
 // ASSET LIBRARY — Loads All 22 Wave 1 + Wave 2 Meshy & Tripo3D GLBs!
 // ============================================================================
@@ -609,9 +668,17 @@ class AssetLibrary {
   }
 
   async loadGLB(url) {
-    return new Promise((resolve, reject) => {
+    const gltf = await new Promise((resolve, reject) => {
       this.loader.load(url, resolve, undefined, reject);
     });
+    // Everything a loaded model owns is shared by its clones for the whole
+    // session, so level clean-up must leave it alone.
+    gltf.scene.traverse((obj) => {
+      if (obj.geometry) obj.geometry.userData.shared = true;
+      const mats = Array.isArray(obj.material) ? obj.material : obj.material ? [obj.material] : [];
+      for (const m of mats) markMaterialShared(m);
+    });
+    return gltf;
   }
 
   async loadHero(heroDef) {
@@ -1240,7 +1307,7 @@ class DragonQuestGame {
       const orb = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 10), mat);
       g.add(orb);
     }
-    const glow = new THREE.PointLight(glowColor, 1.2, 6);
+    const glow = glowLight(glowColor, 1.2, 6);
     g.add(glow);
     return g;
   }
@@ -1294,7 +1361,7 @@ class DragonQuestGame {
       const { wrapper } = this.assets.instantiateNormalized(src, heightMap[bossType], false, true);
       g.add(wrapper);
       if (bossType === 'black_dragon' || bossType === 'magma') {
-        const aura = new THREE.PointLight(0xff3d00, 3.0, 16);
+        const aura = glowLight(0xff3d00, 3.0, 16);
         aura.position.set(0, 3.2, 1.4);
         g.add(aura);
       }
@@ -1326,7 +1393,7 @@ class DragonQuestGame {
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.08;
     group.add(halo);
-    const light = new THREE.PointLight(glowColor, 2.8, 11);
+    const light = glowLight(glowColor, 2.8, 11);
     light.position.set(0, 1.2, 0);
     group.add(light);
     return group;
@@ -1537,7 +1604,8 @@ class DragonQuestGame {
         this.audio.init();
         document.getElementById('level-select-screen').classList.add('hidden');
         document.getElementById('title-screen').classList.add('hidden');
-        this.bondedDragons = [lvl.index >= 2, lvl.index >= 3, lvl.index >= 4, lvl.index >= 5];
+        // Choosing a level may add the bonds that level expects. It never removes one.
+        this.bondedDragons = this.bondedDragons.map((b, i) => b || lvl.index >= i + 2);
         this.inventory.red = Math.max(this.inventory.red, 2);
         this.inventory.green = Math.max(this.inventory.green, 2);
         this.startLevel(lvl.index, true);
@@ -1624,9 +1692,10 @@ class DragonQuestGame {
         document.getElementById('btn-audio-toggle').textContent = m ? '🔇' : '🔊';
         return;
       }
-      if (this.mode === 'cutscene' && (code === 'Enter' || code === 'Space')) {
-        e.preventDefault();
-        this.finishCutscene();
+      // The jump and confirm keys no longer skip a cutscene (they were pressed
+      // by accident). Skipping is the on-screen button or the controller's Start.
+      if (this.mode === 'cutscene') {
+        if (code === 'Enter' || code === 'Space') e.preventDefault();
         return;
       }
       if (this.mode === 'story' && (code === 'Enter' || code === 'Space')) {
@@ -1731,7 +1800,15 @@ class DragonQuestGame {
   // LEVEL CONSTRUCTION
   // ============================================================================
   clearWorld() {
-    while (this.worldGroup.children.length > 0) this.worldGroup.remove(this.worldGroup.children[0]);
+    while (this.worldGroup.children.length > 0) {
+      const child = this.worldGroup.children[0];
+      this.worldGroup.remove(child);
+      disposeTree(child);
+    }
+    // The sparkle materials are kept between levels. Let go of their shaders
+    // here; they are built again the next time a sparkle is drawn.
+    if (this.particleMats) for (const key in this.particleMats) this.particleMats[key].dispose();
+    if (this.particleGeo) this.particleGeo.dispose();
     this.floatingPopups.forEach((p) => p.el.remove());
     this.floatingPopups = [];
     this.heroes = [];
@@ -1798,6 +1875,7 @@ class DragonQuestGame {
 
   addGroundSegment(x, z, w, d, biome, y = 0) {
     const tex = this.textures.getBiomeGround(biome).clone();
+    tex.userData = {};
     tex.needsUpdate = true;
     tex.repeat.set(Math.max(1, w / 24), Math.max(1, d / 24));
     const mesh = new THREE.Mesh(
@@ -1822,7 +1900,7 @@ class DragonQuestGame {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w + 16, 0.8, d), mat);
     mesh.position.set(x, -1.35, z);
     this.worldGroup.add(mesh);
-    const zone = { x, z, w, d, hazardType, frozen: false, bridgeMesh: null, liquidMesh: mesh };
+    const zone = { x, z, w, d, hazardType, frozen: false, bridgeMesh: null, liquidMesh: mesh, hint: null };
     this.chasmZones.push(zone);
     return zone;
   }
@@ -1843,6 +1921,7 @@ class DragonQuestGame {
 
   addMovingPlatform(x, z, w, d, biome, y = 0, axis = 'x', range = 5.5, speed = 1.4) {
     const tex = this.textures.getBiomeGround(biome).clone();
+    tex.userData = {};
     tex.needsUpdate = true;
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(w, 0.8, d),
@@ -1996,13 +2075,26 @@ class DragonQuestGame {
       hatchedBurst: false,
       def,
       onDone: () => {
-        this.worldGroup.remove(beam);
+        this.worldGroup.remove(beam); disposeTree(beam);
+        // However the scene ends, skipped or not, the bond is granted here.
+        this.grantBond(heroIdx);
         this.completedLevels.add(this.currentLevelIdx);
         this.highestLevel = Math.max(this.highestLevel, Math.min(5, this.currentLevelIdx + 1));
         this.persistSave();
         this.showStoryModal(def.outroStory, () => this.startLevel(this.currentLevelIdx + 1, true));
       },
     };
+  }
+
+  // Gives everything the hatching scene gives. Safe to call more than once.
+  grantBond(heroIdx) {
+    this.bondedDragons[heroIdx] = true;
+    if (this.eggObj) {
+      this.eggObj.hatched = true;
+      this.eggObj.mesh.visible = false;
+    }
+    const hero = this.heroes[heroIdx];
+    if (hero && hero.dragonMesh) hero.dragonMesh.visible = true;
   }
 
   updateCutscene(dt) {
@@ -2057,10 +2149,7 @@ class DragonQuestGame {
         this.eggObj.mesh.position.x = cs.eggPos.x + Math.sin(t * 40) * 0.14;
       } else if (!cs.hatchedBurst) {
         cs.hatchedBurst = true;
-        this.eggObj.hatched = true;
-        this.eggObj.mesh.visible = false;
-        this.bondedDragons[cs.heroIdx] = true;
-        cs.hero.dragonMesh.visible = true;
+        this.grantBond(cs.heroIdx);
         cs.hero.dragonMesh.position.copy(cs.eggPos).add(new THREE.Vector3(0, 1.4, 0));
         this.audio.sfxVictory();
         this.spawnParticles(cs.eggPos.clone().add(new THREE.Vector3(0, 1.3, 0)), HERO_DEFS[cs.heroIdx].dragonColor, 55);
@@ -2135,7 +2224,7 @@ class DragonQuestGame {
       if (src) {
         const { wrapper } = this.assets.instantiateByWidth(src, 7.6);
         g.add(wrapper);
-        const light = new THREE.PointLight(0x5ce1ff, 1.8, 10);
+        const light = glowLight(0x5ce1ff, 1.8, 10);
         light.position.y = 2.0;
         g.add(light);
       } else {
@@ -2154,7 +2243,7 @@ class DragonQuestGame {
       if (src) {
         const { wrapper } = this.assets.instantiateByWidth(src, 7.8);
         g.add(wrapper);
-        const light = new THREE.PointLight(0xa855f7, 2.2, 11);
+        const light = glowLight(0xa855f7, 2.2, 11);
         light.position.y = 2.2;
         g.add(light);
       } else {
@@ -2221,7 +2310,7 @@ class DragonQuestGame {
       new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffa000, emissiveIntensity: 0.9, metalness: 0.65, roughness: 0.2 })
     );
     const halo = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 8, 20), new THREE.MeshBasicMaterial({ color: 0xffe880 }));
-    const light = new THREE.PointLight(0xffd700, 1.4, 6);
+    const light = glowLight(0xffd700, 1.4, 6);
     g.add(orb, halo, light);
     this.worldGroup.add(g);
     this.goldBerries.push({ id, mesh: g, pos: new THREE.Vector3(x, y, z), collected: false });
@@ -2306,6 +2395,7 @@ class DragonQuestGame {
           wrapper.traverse((o) => {
             if (o.isMesh && o.material) {
               o.material = o.material.clone();
+              o.material.userData = {};
               o.material.color.lerp(new THREE.Color(0xd8f3ff), 0.55);
             }
           });
@@ -2546,7 +2636,7 @@ class DragonQuestGame {
     );
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.08;
-    const light = new THREE.PointLight(0x69f0ae, 2.8, 12);
+    const light = glowLight(0x69f0ae, 2.8, 12);
     light.position.y = 2.0;
     g.add(halo, light);
     this.worldGroup.add(g);
@@ -2935,8 +3025,18 @@ class DragonQuestGame {
   }
 
   spawnParticles(pos, color, count = 12) {
-    const geo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
-    const mat = new THREE.MeshBasicMaterial({ color });
+    // One cube shape and one material per color, shared for the whole session.
+    if (!this.particleGeo) {
+      this.particleGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+      this.particleGeo.userData.shared = true;
+      this.particleMats = {};
+    }
+    if (!this.particleMats[color]) {
+      this.particleMats[color] = new THREE.MeshBasicMaterial({ color });
+      this.particleMats[color].userData.shared = true;
+    }
+    const geo = this.particleGeo;
+    const mat = this.particleMats[color];
     for (let i = 0; i < count; i++) {
       const m = new THREE.Mesh(geo, mat);
       m.position.copy(pos);
@@ -3111,22 +3211,51 @@ class DragonQuestGame {
     for (const s of this.slopeZones) {
       if (x >= s.minX && x <= s.maxX && z >= s.minZ && z <= s.maxZ) {
         const t = THREE.MathUtils.clamp((s.maxZ - z) / (s.maxZ - s.minZ), 0, 1);
-        return { y: THREE.MathUtils.lerp(s.baseY, s.topY, t), steep: !!s.requiresSpeed && !canClimbSteep, onSolid: true };
+        return { y: THREE.MathUtils.lerp(s.baseY, s.topY, t), steep: !!s.requiresSpeed && !canClimbSteep, onSolid: true, slope: true, fixed: false };
       }
     }
     let bestY = null;
+    let fixed = false;
     for (const mp of this.movingPlatforms) {
       if (x >= mp.x - mp.w / 2 && x <= mp.x + mp.w / 2 && z >= mp.z - mp.d / 2 && z <= mp.z + mp.d / 2) {
-        if (bestY === null || mp.topY > bestY) bestY = mp.topY;
+        if (bestY === null || mp.topY > bestY) { bestY = mp.topY; fixed = false; }
       }
     }
     for (const p of this.platforms) {
       if (x >= p.minX && x <= p.maxX && z >= p.minZ && z <= p.maxZ) {
-        if (bestY === null || p.topY > bestY) bestY = p.topY;
+        if (bestY === null || p.topY > bestY) { bestY = p.topY; fixed = !p.bridge; }
       }
     }
-    if (bestY !== null) return { y: bestY, steep: false, onSolid: true };
-    return { y: -10, steep: false, onSolid: false };
+    if (bestY !== null) return { y: bestY, steep: false, onSolid: true, slope: false, fixed };
+    return { y: -10, steep: false, onSolid: false, slope: false, fixed: false };
+  }
+
+  // True when (x, z) has fixed ground at height y for a full stride in every
+  // direction, so a hero put back here will not fall straight in again.
+  isSafeSpot(x, z, y) {
+    for (const [dx, dz] of [[1.6, 0], [-1.6, 0], [0, 1.6], [0, -1.6]]) {
+      const f = this.getFloorHeightAt(x + dx, z + dz, true);
+      if (!f.onSolid || !f.fixed || Math.abs(f.y - y) > 0.6) return false;
+    }
+    return true;
+  }
+
+  findGapAt(x, z) {
+    for (const cz of this.chasmZones) {
+      if (Math.abs(x - cz.x) <= cz.w / 2 + 8 && Math.abs(z - cz.z) <= cz.d / 2 + 0.5) return cz;
+    }
+    return null;
+  }
+
+  // The hint after a fall names the gift that gets across this gap, if any.
+  fallHintFor(zone) {
+    if (!zone) return '🌿 Oops! Stay on the path.';
+    if (zone.hint) return zone.hint;
+    if (zone.hazardType === 'lava') return '🌋 Too hot! Joshua and Speedy can race up the slope.';
+    const hasPlatform = this.movingPlatforms.some((mp) => Math.abs(mp.baseZ - zone.z) < zone.d / 2);
+    if (hasPlatform) return '💦 Oops! Ride the moving platform across.';
+    if (zone.d <= 8) return '💦 Oops! Take a running jump across the stream.';
+    return '💦 Oops! Vanessa and Frosty can freeze this water.';
   }
 
   updateMovingPlatformsAndPuzzles(dt) {
@@ -3155,7 +3284,9 @@ class DragonQuestGame {
     this.pushPuzzles.forEach((pz) => {
       if (pz.solved) return;
       const michael = this.heroes[3];
-      if (michael && !michael.downed && michael.pos.distanceTo(pz.pos) < 2.2) {
+      // Only a player-controlled Michael pushes. A companion never moves a block.
+      const playerIsMichael = this.p1Hero === 3 || (this.isCoop && this.p2Hero === 3);
+      if (playerIsMichael && michael && !michael.downed && michael.pos.distanceTo(pz.pos) < 2.2) {
         const pushDir = pz.pos.clone().sub(michael.pos);
         pushDir.y = 0;
         if (pushDir.lengthSq() > 0.01) {
@@ -3203,7 +3334,7 @@ class DragonQuestGame {
             }
           }
         });
-        this.worldGroup.remove(dz.mesh);
+        this.worldGroup.remove(dz.mesh); disposeTree(dz.mesh);
         this.dangerZones.splice(i, 1);
       }
     }
@@ -3307,7 +3438,7 @@ class DragonQuestGame {
       v.mesh.scale.addScalar(dt * v.grow);
       if (v.mesh.material) v.mesh.material.opacity = Math.max(0, (v.life / v.maxLife) * 0.9);
       if (v.life <= 0) {
-        this.worldGroup.remove(v.mesh);
+        this.worldGroup.remove(v.mesh); disposeTree(v.mesh);
         this.vfxMeshes.splice(i, 1);
       }
     }
@@ -3429,8 +3560,8 @@ class DragonQuestGame {
           const targetPos = leader.pos.clone().add(new THREE.Vector3(Math.cos(angle) * 2.8, 0, Math.sin(angle) * 2.8 + 1.2));
           const toTarget = targetPos.sub(h.pos);
           toTarget.y = 0;
-          if (toTarget.length() > 14) {
-            h.pos.copy(leader.pos).add(new THREE.Vector3((idx - 1.5) * 1.4, 0.5, 1.5));
+          if (toTarget.length() > 14 && leader.onGround) {
+            h.pos.copy(leader.pos).add(new THREE.Vector3((idx - 1.5) * 0.6, 0.5, 0.6));
             h.vel.set(0, 0, 0);
           } else if (toTarget.length() > 1.2) {
             moveDir.copy(toTarget.normalize());
@@ -3464,28 +3595,43 @@ class DragonQuestGame {
         }
       }
 
-      const floor = this.getFloorHeightAt(nextX, nextZ, isHyperJoshua || h.sprintBoostTimer > 0);
+      let floor = this.getFloorHeightAt(nextX, nextZ, isHyperJoshua || h.sprintBoostTimer > 0);
       if (floor.steep && (isP1 || isP2) && nextZ < h.pos.z) {
         blocked = true;
         this.showAlert('⛰️ Too steep! Use Prince Joshua + Speedy’s Hyper-Speed!', 1.8);
       }
+      // A floor higher than a small step is a wall. A hero who has dropped into
+      // a gap can no longer be lifted onto the far bank.
+      if (!blocked && floor.onSolid && !floor.slope && floor.y > h.pos.y + 0.6) blocked = true;
 
       if (!blocked) { h.pos.x = nextX; h.pos.z = nextZ; }
+      else floor = this.getFloorHeightAt(h.pos.x, h.pos.z, isHyperJoshua || h.sprintBoostTimer > 0);
       h.pos.y += h.vel.y * dt;
 
-      if (floor.onSolid && h.pos.y <= floor.y && h.vel.y <= 0) {
+      if (floor.onSolid && h.pos.y <= floor.y && h.pos.y >= floor.y - 0.6 - Math.abs(h.vel.y) * dt && h.vel.y <= 0) {
         h.pos.y = floor.y;
         h.vel.y = 0;
         h.onGround = true;
-      } else if (!floor.onSolid && h.pos.y < -3.5) {
-        h.pos.z += 5.5;
-        h.pos.x = 0;
-        h.pos.y = 2.0;
+        // Remember the last spot with solid, fixed ground all around.
+        if (floor.fixed && this.isSafeSpot(h.pos.x, h.pos.z, floor.y)) {
+          if (!h.lastSafe) h.lastSafe = new THREE.Vector3();
+          h.lastSafe.copy(h.pos);
+        }
+      } else if (h.pos.y < -3.5) {
+        // Fell into a gap: go back to the last safe spot, never forward.
+        const zone = this.findGapAt(h.pos.x, h.pos.z);
+        h.fallCount = (h.fallCount || 0) + 1;
+        h.lastFallHint = this.fallHintFor(zone);
+        if (h.lastSafe) h.pos.copy(h.lastSafe);
+        else h.pos.set(-3 + idx * 2, 0, 4);
         h.vel.set(0, 0, 0);
+        h.onGround = true;
         if (isP1 || isP2) {
           this.hurtHero(h, 10);
-          this.showAlert('💦 Oops! Jump with [Space] or freeze water with Vanessa + Frosty!', 2.0);
+          this.showAlert(h.lastFallHint, 2.4);
         }
+      } else if (!floor.onSolid || h.pos.y > floor.y) {
+        h.onGround = false;
       }
 
       if ((isP1 || isP2) && !h.trappedByWeb && h.armorTimer <= 0) {
@@ -3632,7 +3778,7 @@ class DragonQuestGame {
         }
       }
       if (hit || p.life <= 0) {
-        this.worldGroup.remove(p.mesh);
+        this.worldGroup.remove(p.mesh); disposeTree(p.mesh);
         this.projectiles.splice(i, 1);
       }
     }
