@@ -189,6 +189,18 @@ export class UI {
     }, { clear: true });
   }
 
+  // The very end of the story.
+  showEnd(gold = 0) {
+    this.onFocus = null;
+    this.open('end', (s) => {
+      s.appendChild(el('h1', 'title', 'The End'));
+      s.appendChild(el('div', 'label', '<span style="color:var(--gold)">' + '🏮'.repeat(Math.min(18, gold)) + '</span>'));
+      const row = el('div', 'row');
+      this.item(row, 'play', '🗺️', 'next');
+      s.appendChild(row);
+    }, { clear: true });
+  }
+
   showLost() {
     this.onFocus = null;
     this.open('lost', (s) => {

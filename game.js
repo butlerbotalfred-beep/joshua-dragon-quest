@@ -14,6 +14,7 @@ import { Dialogue } from './src/dialogue.js';
 import { Scene } from './src/cutscenes.js';
 import { Assets, modelsForLevel } from './src/assets.js';
 import { LEVELS, registerLevel } from './src/leveldata.js';
+import { beat, beatModels } from './src/story.js';
 
 const freshSave = () => ({
   v: 1, difficulty: 'easy', players: 1, heroes: [0, 1], setupDone: false,
@@ -118,7 +119,7 @@ class Game {
     const s = this.save;
     switch (name) {
       case 'play':
-        if (s.setupDone) this.toMap(); else this.ui.showDifficulty(s.difficulty);
+        if (s.setupDone) this.begin(); else this.ui.showDifficulty(s.difficulty);
         break;
       case 'difficulty':
         s.difficulty = arg; this.saveNow();
@@ -134,7 +135,7 @@ class Game {
         if (s.players === 2 && this.picking === 0) { this.picking = 1; this.ui.showHeroes(1, 2, s.heroes[0], s.heroes[1]); break; }
         if (s.heroes[1] === s.heroes[0]) s.heroes[1] = (s.heroes[0] + 1) % 4;
         s.setupDone = true; this.saveNow();
-        this.toMap();
+        this.begin();
         break;
       case 'level': this.startLevel(+arg); break;
       case 'back':
@@ -167,6 +168,11 @@ class Game {
         break;
       default: break;
     }
+  }
+
+  // Into the game: the prologue the first time, the map after that.
+  begin() {
+    if (!this.save.prologueSeen && LEVELS[0]) this.startLevel(0); else this.toMap();
   }
 
   setDifficulty(key) {
@@ -205,11 +211,11 @@ class Game {
       coop: players === 2,
       p1Hero: opts.p1Hero ?? s.heroes[0],
       p2Hero: opts.p2Hero ?? s.heroes[1],
-      bonded: opts.bonded || s.bonded,
+      bonded: def.noDragons ? [false, false, false, false] : opts.bonded || s.bonded,      // no egg has hatched in the prologue
       goldFound: s.gold,
       seed: opts.seed,
     });
-    const keys = modelsForLevel(world);
+    const keys = modelsForLevel(world, beatModels(def));
     this.assets.keepOnly(keys);
     const turn = (this.loadTurn = (this.loadTurn || 0) + 1);
     await this.assets.load(keys, (f) => this.ui.setLoading(true, f));
@@ -219,12 +225,39 @@ class Game {
     this.view.build(world, this.assets);
     this.audio.playMusic(def.music);
     this.ui.setLoading(false);
-    this.ui.showHud(true);
+    this.ui.showHud(!def.sceneOnly);
     this.state = 'play';
+    this.giftsGiven = [false, false, false, false];
     this.log.push({ level: number, t: 0 });
     const story = def.story || {};
-    if (story.start && !opts.noStory) this.playScene(story.start(this), { name: 'start' });
+    const steps = opts.noStory ? [] : [...(story.start ? story.start(this) : []), ...beat(def, 'start', this)];
+    if (steps.length) this.playScene(steps, { name: 'start', onEnd: def.sceneOnly ? (g) => g.endPlace() : null });
     return true;
+  }
+
+  // A place with a scene and no play (the prologue, the festival) has ended, or was skipped.
+  endPlace() {
+    const def = this.level;
+    if (!def || !def.sceneOnly) return;
+    if (def.ending) {
+      this.save.finished = true; this.saveNow();
+      this.state = 'complete';
+      this.log.push({ end: true });
+      this.ui.showEnd(this.save.gold.length);
+      return;
+    }
+    if (def.number === 0 && !this.save.prologueSeen) { this.save.prologueSeen = true; this.saveNow(); }
+    this.log.push({ prologue: 'seen' });
+    if (LEVELS[def.next]) this.startLevel(def.next); else this.toMap();
+  }
+
+  // The Keeper gives (or, at the festival, makes permanent) one hero's gift.
+  giveGift(i) {
+    if (!this.giftsGiven || this.giftsGiven[i]) return;
+    this.giftsGiven[i] = true;
+    this.log.push({ gift: i });
+    this.audio.sfx('gold', 0.55);
+    if (this.world) this.view.giftGlow(i);
   }
 
   playScene(steps, { onEnd = null, name = '' } = {}) {
@@ -265,7 +298,7 @@ class Game {
 
   afterLevel() {
     const n = this.level ? this.level.number : 0;
-    const next = LEVELS[n] && LEVELS[n].next;
+    const next = n === 6 ? 7 : LEVELS[n] && LEVELS[n].next;          // after Level 6 comes the festival
     if (next !== undefined && LEVELS[next]) this.startLevel(next);
     else this.toMap(Math.min(6, n + 1));
   }
@@ -321,9 +354,12 @@ class Game {
       case 'guardianFreed':
         a.sfx('guardian_freed', 0.9);
         a.playMusic(this.level.music);
-        if (story.freed) this.playScene(story.freed(this), { name: 'freed', onEnd: story.afterFreed ? (g) => story.afterFreed(g) : null });
+      {
+        const steps = [...(story.freed ? story.freed(this) : []), ...beat(this.level, 'freed', this)];
+        if (steps.length) this.playScene(steps, { name: 'freed', onEnd: story.afterFreed ? (g) => story.afterFreed(g) : null });
         else if (story.afterFreed) story.afterFreed(this);
         break;
+      }
       case 'egg': {
         const hero = e.eggHero;
         const steps = story.egg ? story.egg(this) : [{ wait: 0.6 }];
@@ -331,7 +367,7 @@ class Game {
         break;
       }
       case 'exit': {
-        const steps = story.exit ? story.exit(this) : [{ wait: 0.3 }];
+        const steps = [...(story.exit ? story.exit(this) : [{ wait: 0.3 }]), ...beat(this.level, 'exit', this)];
         this.playScene(steps, { name: 'exit', onEnd: (g) => g.completeLevel() });
         break;
       }

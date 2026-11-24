@@ -163,7 +163,7 @@ test('1.2 choosing any level from the map keeps all four dragons', async () => {
     // Bond all four and save, then reload so the bonds come from the save.
     await g.page.evaluate(() => {
       const game = window.game;
-      Object.assign(game.save, { bonded: [true, true, true, true], highest: 5, setupDone: true, players: 1, heroes: [0, 1] });
+      Object.assign(game.save, { bonded: [true, true, true, true], highest: 5, setupDone: true, prologueSeen: true, players: 1, heroes: [0, 1] });
       game.saveNow();
     });
     await g.page.reload();

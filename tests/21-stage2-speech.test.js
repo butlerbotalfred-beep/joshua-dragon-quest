@@ -159,7 +159,10 @@ test('2.8 in the game, every line plays its sound and no screen ever shows more 
       K.tap(K.BUTTON.A); res.screens.players = look('players');
       K.nudge(1, 0); K.tap(K.BUTTON.A); res.screens.heroes1 = look('heroes, player one');
       K.tap(K.BUTTON.A); res.screens.heroes2 = look('heroes, player two');
-      K.tap(K.BUTTON.A); res.screens.map = look('map');
+      K.tap(K.BUTTON.A);
+      await K.loaded();
+      res.screens.prologue = look('the prologue begins');
+      game.toMap(); res.screens.map = look('map');
       res.mapScreen = game.ui.screen;
 
       // In play, with the HUD up: say every line and watch the screen all the way through.
@@ -191,6 +194,7 @@ test('2.8 in the game, every line plays its sound and no screen ever shows more 
       K.tap(K.BUTTON.START);
       game.completeLevel(); res.screens.complete = look('level complete');
       game.ui.showLost(); res.screens.lost = look('try again');
+      game.ui.showEnd(18); res.screens.end = look('the end');
       // Every sound file can be fetched.
       res.fetched = [];
       for (const l of Object.values(game.dialogue.lines)) {

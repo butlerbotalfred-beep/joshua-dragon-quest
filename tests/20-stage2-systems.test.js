@@ -28,10 +28,12 @@ test('2.1 difficulty is chosen at the start, saved, and changeable from the paus
       out.afterPick = JSON.parse(localStorage.getItem(SAVE_KEY)).difficulty;
       K.tap(K.BUTTON.A);                                      // one player
       K.tap(K.BUTTON.A);                                      // first hero
-      out.screens.push(game.ui.screen);
+      await K.loaded();
+      out.then = { level: game.level && game.level.number, state: game.state, difficulty: game.world && game.world.diffKey };   // a new game opens on the prologue
       return out;
     }, SAVE_KEY);
-    assert.deepStrictEqual(first.screens, ['title', 'difficulty', 'map']);
+    assert.deepStrictEqual(first.screens, ['title', 'difficulty']);
+    assert.deepStrictEqual(first.then, { level: 0, state: 'cutscene', difficulty: 'hard' });
     assert.deepStrictEqual(first.choices, ['difficulty:easy', 'difficulty:medium', 'difficulty:hard']);
     assert.strictEqual(first.afterPick, 'hard');
 
@@ -148,7 +150,14 @@ test('2.2 a bot starts a game, picks a difficulty, plays, swaps hero and pauses 
       K.tap(K.BUTTON.RIGHT); note('D-pad right');
       K.tap(K.BUTTON.A); note('A on a hero');
       const heroPicked = JSON.parse(localStorage.getItem(SAVE_KEY)).heroes[0];
-      K.tap(K.BUTTON.A); note('A on the map');
+      // A new game opens on the prologue. The Menu button skips it.
+      for (let i = 0; i < 600 && game.state === 'loading'; i++) await new Promise((r) => setTimeout(r, 50));
+      note('the prologue'); const prologueLevel = game.level && game.level.number;
+      K.tap(K.BUTTON.START); note('Start skips the prologue');
+      for (let i = 0; i < 600 && game.state === 'loading'; i++) await new Promise((r) => setTimeout(r, 50));
+      // Level 1 follows it. Until Level 1 exists, the map does.
+      const viaMap = game.ui.screen === 'map';
+      if (viaMap) { note('the map'); K.tap(K.BUTTON.A); note('A on the map'); }
       // The level loads its models in real time.
       for (let i = 0; i < 600 && game.state === 'loading'; i++) await new Promise((r) => setTimeout(r, 50));
       note('loaded');
@@ -177,7 +186,7 @@ test('2.2 a bot starts a game, picks a difficulty, plays, swaps hero and pauses 
       K.tap(K.BUTTON.START); note('paused again');
       K.nudge(1, 0); K.nudge(1, 0); K.nudge(1, 0); K.tap(K.BUTTON.A); note('map from the pause menu');
       return {
-        log, focus, difficulty, heroPicked, walked, jumped: events.includes('jump'), gifts: gifts1 - gifts0,
+        log, focus, difficulty, heroPicked, prologueLevel, viaMap, walked, jumped: events.includes('jump'), gifts: gifts1 - gifts0,
         heroes: [heroA, heroB, heroC, heroD], called: events.includes('call'), swapped: events.filter((e) => e === 'swap').length,
         frozen, keysUsed: game.input.keys.size - keysBefore, acts: game.log.filter((l) => l.act).map((l) => l.act),
       };
@@ -191,7 +200,9 @@ test('2.2 a bot starts a game, picks a difficulty, plays, swaps hero and pauses 
     assert.strictEqual(at('B goes back').screen, 'difficulty');
     assert.strictEqual(at('A on one player').screen, 'heroes');
     assert.strictEqual(out.heroPicked, 1, 'the D-pad did not move to the second hero');
-    assert.strictEqual(at('A on a hero').screen, 'map');
+    assert.strictEqual(at('the prologue').state, 'cutscene');
+    assert.strictEqual(out.prologueLevel, 0);
+    if (out.viaMap) assert.strictEqual(at('the map').screen, 'map');
     assert.strictEqual(at('played').state, 'play');
     assert.ok(out.walked > 5, `the stick moved the hero only ${out.walked}`);
     assert.ok(out.jumped, 'A did not jump');

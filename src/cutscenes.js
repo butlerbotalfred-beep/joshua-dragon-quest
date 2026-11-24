@@ -14,6 +14,9 @@
 //   { always: (game) => { ... } } like `do`, and also done if the scene is skipped
 //   { music: 'track' }, { sfx: 'name' }
 //   { move: 'actor' | heroIndex, to: { x, z }, t: 2 }  walk someone somewhere
+//       (an actor can be given a height too, to: { x, y, z }, and `together: true` does not wait)
+//   { later: [[seconds, (game) => { ... }], ...] }     small things timed against what follows,
+//       such as a glow as each name is spoken. A skipped scene drops them, so pair with `always`.
 
 export class Scene {
   constructor(game, steps, { onEnd = null, name = '' } = {}) {
@@ -26,6 +29,7 @@ export class Scene {
     this.done = false;
     this.onEnd = onEnd;
     this.moves = [];
+    this.timers = [];
     this.advance();
   }
 
@@ -40,9 +44,11 @@ export class Scene {
       if (s.music) game.audio.playMusic(s.music, { loop: s.loop !== false });
       if (s.sfx) game.audio.sfx(s.sfx, s.volume ?? 0.8);
       if (s.cam) game.view.camOverride = { ...s.cam, snap: !!s.snap };
+      if (s.later) for (const [after, fn] of s.later) this.timers.push({ t: after, fn });
       if (s.move !== undefined) {
         const who = this.subject(s.move);
-        if (who) this.moves.push({ who, x0: who.x ?? who.position.x, z0: who.z ?? who.position.z, x1: s.to.x, z1: s.to.z, t: 0, T: s.t || 1, hero: typeof s.move === 'number' });
+        const hero = typeof s.move === 'number';
+        if (who) this.moves.push({ who, x0: who.x ?? who.position.x, z0: who.z ?? who.position.z, x1: s.to.x, z1: s.to.z, y0: hero ? 0 : who.position.y, y1: hero ? undefined : s.to.y, t: 0, T: s.t || 1, hero });
         if (s.wait === undefined && !s.together) { this.waiting = 'time'; this.t = s.t || 1; return; }
       }
       if (s.say) {
@@ -70,8 +76,14 @@ export class Scene {
         h.x = x; h.z = z; h.fx = dx / d; h.fz = dz / d; h.speedNow = k < 1 ? d / m.T : 0;
       } else {
         m.who.position.x = x; m.who.position.z = z;
+        if (m.y1 !== undefined) m.who.position.y = m.y0 + (m.y1 - m.y0) * k * (2 - k);      // settles gently
         if (k < 1) m.who.rotation.y = Math.atan2(m.x1 - m.x0, m.z1 - m.z0);
       }
+    }
+    for (const tm of this.timers) {
+      if (tm.done) continue;
+      tm.t -= dt;
+      if (tm.t <= 0) { tm.done = true; tm.fn(this.game); }
     }
     if (this.waiting === 'time') {
       this.t -= dt;
@@ -85,8 +97,9 @@ export class Scene {
     this.done = true;                      // stops any line callback from advancing
     game.dialogue.stop();
     for (const m of this.moves) {
-      if (m.hero) { m.who.x = m.x1; m.who.z = m.z1; m.who.speedNow = 0; } else { m.who.position.x = m.x1; m.who.position.z = m.z1; }
+      if (m.hero) { m.who.x = m.x1; m.who.z = m.z1; m.who.speedNow = 0; } else { m.who.position.x = m.x1; m.who.position.z = m.z1; if (m.y1 !== undefined) m.who.position.y = m.y1; }
     }
+    this.timers = [];
     for (let k = this.i + 1; k < this.steps.length; k++) {
       const s = this.steps[k];
       if (s.always) s.always(game);

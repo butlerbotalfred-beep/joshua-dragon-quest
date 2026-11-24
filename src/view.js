@@ -90,6 +90,7 @@ export class View {
     this.heroViz = []; this.enemyViz = []; this.gateViz = []; this.shots = new Map(); this.tele = [];
     this.mixers = []; this.particles = []; this.actors = {}; this.spin = []; this.floorViz = [];
     this.guardianViz = null; this.eggViz = null; this.fxMesh = null; this.liquids = [];
+    this.streaks = []; this.streakCount = 0; this.fades = []; this.lanternPairs = 0; this.lanterns = [];
   }
 
   build(world, assets) {
@@ -709,8 +710,98 @@ export class View {
     this.syncShots(world, dt, t);
     this.syncTelegraph(world, t);
     this.syncPickups(world, dt, t);
+    this.syncExtras(dt, t);
     this.syncParticles(dt);
     this.updateCamera(world, dt);
+  }
+
+  // Things that only stories use: shooting eggs, glows that fade, lanterns.
+  syncExtras(dt, t) {
+    for (const s of this.streaks) {
+      if (s.done) continue;
+      s.t += dt;
+      const k = Math.min(1, Math.max(0, s.t) / s.T);
+      s.m.position.set(s.x0 + (s.x1 - s.x0) * k, s.y0 + (s.y1 - s.y0) * k + Math.sin(Math.PI * k) * s.arc, s.z0 + (s.z1 - s.z0) * k);
+      if (Math.random() < 0.7) this.burst(s.m.position.x, s.m.position.y, s.m.position.z, s.color, 1, 0.6, 0.6);
+      if (k >= 1) { s.done = true; s.m.visible = false; }
+    }
+    for (const f of this.fades) {
+      if (f.t >= f.T) continue;
+      f.t += dt;
+      const k = Math.min(1, f.t / f.T);
+      f.m.material.opacity = f.from * (1 - k);
+      f.m.scale.setScalar(f.size * (0.6 + k * 0.9));
+      if (f.follow) f.m.position.set(f.follow.x, f.follow.y + f.dy, f.follow.z);
+      if (k >= 1) f.m.visible = false;
+    }
+    for (const l of this.lanterns) l.m.position.y = l.y + Math.sin(t * 1.4 + l.k) * 0.12;
+  }
+
+  // The four eggs, flung from one spot to the four corners of the kingdom.
+  eggStreaks(x, y, z) {
+    const to = [[-90, 30, 40], [90, 34, 30], [-70, 48, -140], [80, 44, -150]];
+    HEROES.forEach((h, i) => {
+      const color = h.dragon.color;
+      const m = this.glow(color, 5, 0.95);
+      m.position.set(x, y, z);
+      this.root.add(m);
+      this.streaks.push({ m, color, x0: x, y0: y, z0: z, x1: to[i][0], y1: to[i][1], z1: z + to[i][2], arc: 10 + i * 2, t: -i * 0.18, T: 2.4, done: false });
+      this.streakCount++;
+    });
+  }
+
+  // A hero's gift lights up around them.
+  giftGlow(i) {
+    const viz = this.heroViz[i];
+    if (!viz) return;
+    const h = viz.h, color = GIFT_COLOR[h.def.gift];
+    const m = this.glow(color, 4, 0.9);
+    m.position.set(h.x, h.y + 1.2, h.z);
+    this.root.add(m);
+    this.fades.push({ m, t: 0, T: 1.6, from: 0.9, size: 4, follow: h, dy: 1.2 });
+    this.burst(h.x, h.y + 1.4, h.z, color, 18, 3.5, 1.0);
+  }
+
+  // Pairs of lanterns along both sides of a courtyard.
+  addLanterns(pairs, { x = 0, z0 = -3, z1 = -45, half = 8 } = {}) {
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x5a3d22, roughness: 0.9 });
+    const colors = [0xffc857, 0xff8a5c, 0xff6fa3, 0xffe08a];
+    const step = pairs > 1 ? Math.min(3.2, (z0 - z1) / (pairs - 1)) : 0;
+    for (let k = 0; k < pairs; k++) {
+      const z = z0 - k * step;
+      for (const side of [-1, 1]) {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 2.6, 6), postMat);
+        post.position.set(x + side * half, 1.3, z);
+        const lamp = new THREE.Group();
+        const paper = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10), new THREE.MeshStandardMaterial({ color: colors[k % 4], emissive: colors[k % 4], emissiveIntensity: 1.1, roughness: 0.6 }));
+        paper.scale.y = 1.25;
+        lamp.add(paper, this.glow(colors[k % 4], 2.6, 0.55));
+        lamp.position.set(x + side * half, 2.9, z);
+        this.root.add(post, lamp);
+        this.lanterns.push({ m: lamp, y: 2.9, k: k + (side > 0 ? 0.5 : 0), pair: k });
+      }
+    }
+    this.lanternPairs = pairs;
+    return pairs;
+  }
+
+  // A doorway to walk through: two posts and a beam.
+  addDoor(name, x, y, z, half = 3.4) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x4d4660, roughness: 0.8 });
+    const g = new THREE.Group();
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(1.1, 6.4, 1.3), mat);
+      post.position.set(side * half, 3.2, 0);
+      post.castShadow = true;
+      g.add(post);
+    }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(half * 2 + 2.2, 1.1, 1.5), mat);
+    beam.position.set(0, 6.9, 0);
+    g.add(beam);
+    g.position.set(x, y, z);
+    this.root.add(g);
+    this.actors[name] = g;
+    return g;
   }
 
   syncHero(viz, world, dt, t) {

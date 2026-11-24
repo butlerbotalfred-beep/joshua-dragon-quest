@@ -30,6 +30,28 @@ export function clearWayTo(world, z) {
   world.drain();
 }
 
+// Until a real level exists, a practice level stands in under its number, so
+// a story check never goes quiet. Returns true when it had to.
+export function standIn(number, def) {
+  if (LEVELS[number]) return false;
+  game().registerLevel({ ...def, number });
+  return true;
+}
+
+// Stand the family on a flat stretch of path, this far into the level.
+export function placeAt(world, z) {
+  const sec = world.L.sections.find((s) => z <= s.zNear && z > s.zFar) || world.L.sections[0];
+  const spots = [[0, 0], [-1.8, 2], [1.8, 2], [0, 3.6]];
+  const order = [world.playerHero(0), ...world.heroes.filter((h) => h !== world.playerHero(0))];
+  order.forEach((h, k) => {
+    h.x = sec.cx + spots[k][0]; h.z = z + spots[k][1]; h.y = sec.y; h.vy = 0;
+    h.lastSafe = { x: h.x, y: h.y, z: h.z };
+  });
+  world.checkpoint = { x: sec.cx, y: sec.y, z };
+  world.farthestZ = z;
+  world.progressT = 0;
+}
+
 const DT = 1 / 60;
 const game = () => window.game;
 const pads = () => window.__pads;
