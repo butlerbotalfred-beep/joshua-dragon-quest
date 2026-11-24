@@ -1,0 +1,807 @@
+{
+ "voices": {
+  "keeper": {
+   "name": "The Keeper of the Forest",
+   "voice": "story teller old grandfather",
+   "voiceId": "86d2e997840443a1832c999ee71468b2",
+   "standIn": false,
+   "madeWith": "Fish Audio"
+  },
+  "narrator": {
+   "name": "Narrator",
+   "voice": "story teller old grandfather",
+   "voiceId": "86d2e997840443a1832c999ee71468b2",
+   "standIn": false,
+   "madeWith": "Fish Audio"
+  },
+  "renee": {
+   "name": "Renee, the Ward",
+   "voice": "Grandma",
+   "voiceId": "fb4f0464f53e4f939d00a7c20d17d143",
+   "standIn": false,
+   "madeWith": "Fish Audio"
+  },
+  "dragon": {
+   "name": "The Great Black Dragon",
+   "voice": "Yuji",
+   "voiceId": "6e294c216f1e4b4c94449341a5db5da9",
+   "standIn": false,
+   "madeWith": "Fish Audio"
+  },
+  "joshua": {
+   "name": "Joshua",
+   "voice": "Energetic Child",
+   "voiceId": "4fcb3a423c61415fb35604eba567d95f",
+   "standIn": true,
+   "madeWith": "Fish Audio"
+  },
+  "daniel": {
+   "name": "Daniel",
+   "voice": "Kid",
+   "voiceId": "b9011feb3c6f46ddaeb90043fab0eb4a",
+   "standIn": true,
+   "madeWith": "Fish Audio"
+  },
+  "vanessa": {
+   "name": "Vanessa",
+   "voice": "Laura",
+   "voiceId": "e3cd384158934cc9a01029cd7d278634",
+   "standIn": true,
+   "madeWith": "Fish Audio"
+  },
+  "michael": {
+   "name": "Michael",
+   "voice": "Warm Male Friend",
+   "voiceId": "f292c81d563f47799b7e411f1c1e68a9",
+   "standIn": true,
+   "madeWith": "Fish Audio"
+  }
+ },
+ "sounds": {
+  "jump": "assets/audio/sfx/jump.mp3",
+  "dash": "assets/audio/sfx/dash.mp3",
+  "fire": "assets/audio/sfx/fire.mp3",
+  "ice": "assets/audio/sfx/ice.mp3",
+  "slam": "assets/audio/sfx/slam.mp3",
+  "hit": "assets/audio/sfx/hit.mp3",
+  "target": "assets/audio/sfx/target.mp3",
+  "wrong": "assets/audio/sfx/wrong.mp3",
+  "gate_open": "assets/audio/sfx/gate_open.mp3",
+  "hurt": "assets/audio/sfx/hurt.mp3",
+  "dizzy": "assets/audio/sfx/dizzy.mp3",
+  "fall": "assets/audio/sfx/fall.mp3",
+  "caught": "assets/audio/sfx/caught.mp3",
+  "pop": "assets/audio/sfx/pop.mp3",
+  "call": "assets/audio/sfx/call.mp3",
+  "swap": "assets/audio/sfx/swap.mp3",
+  "berry": "assets/audio/sfx/berry.mp3",
+  "gold": "assets/audio/sfx/gold.mp3",
+  "creature_freed": "assets/audio/sfx/creature_freed.mp3",
+  "knot": "assets/audio/sfx/knot.mp3",
+  "warning": "assets/audio/sfx/warning.mp3",
+  "strike": "assets/audio/sfx/strike.mp3",
+  "web": "assets/audio/sfx/web.mp3",
+  "guardian_freed": "assets/audio/sfx/guardian_freed.mp3",
+  "level_done": "assets/audio/sfx/level_done.mp3",
+  "menu_ok": "assets/audio/sfx/menu_ok.mp3",
+  "menu_back": "assets/audio/sfx/menu_back.mp3",
+  "chirp": "assets/audio/sfx/chirp.mp3",
+  "chirps": "assets/audio/sfx/chirps.mp3",
+  "hatch": "assets/audio/sfx/hatch.mp3",
+  "roar": "assets/audio/sfx/roar.mp3",
+  "whoosh": "assets/audio/sfx/whoosh.mp3"
+ },
+ "lines": [
+  {
+   "id": "pro_joshua_stars",
+   "speaker": "joshua",
+   "text": "Dad, look! Shooting stars! In the daytime!",
+   "file": "assets/audio/voice/pro_joshua_stars.mp3",
+   "duration": 3.5,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_dragon_eggs",
+   "speaker": "dragon",
+   "text": "MY eggs! Come back here this instant! Oh, bother.",
+   "file": "assets/audio/voice/pro_dragon_eggs.mp3",
+   "duration": 3.97,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_keeper_hello",
+   "speaker": "keeper",
+   "text": "Do not be afraid, little family. I am the Keeper of the Forest.",
+   "file": "assets/audio/voice/pro_keeper_hello.mp3",
+   "duration": 4.78,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_keeper_dragon",
+   "speaker": "keeper",
+   "text": "That dragon is proud, and she is lonely. She took four eggs to make a family that must follow her.",
+   "file": "assets/audio/voice/pro_keeper_dragon.mp3",
+   "duration": 7.39,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_keeper_renee",
+   "speaker": "keeper",
+   "text": "Your tutor, Renee, is my Ward, and my wife. She threw the eggs far away to keep them safe. Now they need you.",
+   "file": "assets/audio/voice/pro_keeper_renee.mp3",
+   "duration": 9.14,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_daniel_teacher",
+   "speaker": "daniel",
+   "text": "Our teacher did that?",
+   "file": "assets/audio/voice/pro_daniel_teacher.mp3",
+   "duration": 1.15,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_keeper_gifts",
+   "speaker": "keeper",
+   "text": "Hold out your hands. Speed for Joshua. Fire for Daniel. Ice for Vanessa. Strength for Michael.",
+   "file": "assets/audio/voice/pro_keeper_gifts.mp3",
+   "duration": 7.63,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_keeper_task",
+   "speaker": "keeper",
+   "text": "Prove yourselves worthy, and these gifts are yours to keep. First, find your way out of these woods and free the Great Bear.",
+   "file": "assets/audio/voice/pro_keeper_task.mp3",
+   "duration": 8.88,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "pro_michael_day",
+   "speaker": "michael",
+   "text": "Then we had better make it a good day. Stay close, boys.",
+   "file": "assets/audio/voice/pro_michael_day.mp3",
+   "duration": 3.08,
+   "scene": "prologue",
+   "from": "story"
+  },
+  {
+   "id": "web_joshua",
+   "speaker": "joshua",
+   "text": "I'm stuck! Somebody swap in! Hee hee, stop it!",
+   "file": "assets/audio/voice/web_joshua.mp3",
+   "duration": 3.89,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "web_daniel",
+   "speaker": "daniel",
+   "text": "I'm stuck! Somebody swap in! Hee hee, stop it!",
+   "file": "assets/audio/voice/web_daniel.mp3",
+   "duration": 4.73,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "web_vanessa",
+   "speaker": "vanessa",
+   "text": "I'm stuck! Somebody swap in! Hee hee, stop it!",
+   "file": "assets/audio/voice/web_vanessa.mp3",
+   "duration": 3.63,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "web_michael",
+   "speaker": "michael",
+   "text": "I'm stuck! Somebody swap in! Hee hee, stop it!",
+   "file": "assets/audio/voice/web_michael.mp3",
+   "duration": 2.82,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "hint_web",
+   "speaker": "keeper",
+   "text": "A web is too sticky for one. Call your family.",
+   "file": "assets/audio/voice/hint_web.mp3",
+   "duration": 4.05,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "vanessa_freeing",
+   "speaker": "vanessa",
+   "text": "Got you. Up you come.",
+   "file": "assets/audio/voice/vanessa_freeing.mp3",
+   "duration": 1.57,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "l1_keeper_freed",
+   "speaker": "keeper",
+   "text": "There. The spell is gone. He was never angry at you.",
+   "file": "assets/audio/voice/l1_keeper_freed.mp3",
+   "duration": 4.47,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "l1_daniel_smile",
+   "speaker": "daniel",
+   "text": "He's smiling! Can a bear smile?",
+   "file": "assets/audio/voice/l1_daniel_smile.mp3",
+   "duration": 3.06,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "l1_keeper_news",
+   "speaker": "keeper",
+   "text": "Well done. Renee sends word from the castle. The dragon is searching for the eggs. A baby dragon grows up to be like whoever loves it first. Reach each one before her spell does.",
+   "file": "assets/audio/voice/l1_keeper_news.mp3",
+   "duration": 12.64,
+   "scene": "level1",
+   "from": "story"
+  },
+  {
+   "id": "l2_keeper_glow",
+   "speaker": "keeper",
+   "text": "See how it glows? It can hear you coming, Joshua.",
+   "file": "assets/audio/voice/l2_keeper_glow.mp3",
+   "duration": 4,
+   "scene": "level2",
+   "from": "story"
+  },
+  {
+   "id": "l2_joshua_hatch",
+   "speaker": "joshua",
+   "text": "Hi. I'm Joshua. I'll look after you. I promise.",
+   "file": "assets/audio/voice/l2_joshua_hatch.mp3",
+   "duration": 3.87,
+   "scene": "level2",
+   "from": "story"
+  },
+  {
+   "id": "l2_michael_friend",
+   "speaker": "michael",
+   "text": "I think you have a friend for life, son.",
+   "file": "assets/audio/voice/l2_michael_friend.mp3",
+   "duration": 1.72,
+   "scene": "level2",
+   "from": "story"
+  },
+  {
+   "id": "l3_daniel_hot",
+   "speaker": "daniel",
+   "text": "It's so hot in here. Mommy, can you make it snow?",
+   "file": "assets/audio/voice/l3_daniel_hot.mp3",
+   "duration": 3.53,
+   "scene": "level3",
+   "from": "story"
+  },
+  {
+   "id": "l3_keeper_freed",
+   "speaker": "keeper",
+   "text": "Feel that? He is only warm now, like a hearth. Renee tells me the dragon knows two eggs have hatched. Hurry on.",
+   "file": "assets/audio/voice/l3_keeper_freed.mp3",
+   "duration": 9.53,
+   "scene": "level3",
+   "from": "story"
+  },
+  {
+   "id": "l3_daniel_hatch",
+   "speaker": "daniel",
+   "text": "You're warm. Hello, Ember. I'm Daniel. I've got you.",
+   "file": "assets/audio/voice/l3_daniel_hatch.mp3",
+   "duration": 4.52,
+   "scene": "level3",
+   "from": "story"
+  },
+  {
+   "id": "l3_joshua_both",
+   "speaker": "joshua",
+   "text": "Now we both have one! Speedy, say hi!",
+   "file": "assets/audio/voice/l3_joshua_both.mp3",
+   "duration": 3.27,
+   "scene": "level3",
+   "from": "story"
+  },
+  {
+   "id": "l4_michael_warm",
+   "speaker": "michael",
+   "text": "Everyone warm enough? Daniel, stay near your mother.",
+   "file": "assets/audio/voice/l4_michael_warm.mp3",
+   "duration": 3.58,
+   "scene": "level4",
+   "from": "story"
+  },
+  {
+   "id": "l4_keeper_thick",
+   "speaker": "keeper",
+   "text": "That ice is too thick for a small flame. Ask Ember to help.",
+   "file": "assets/audio/voice/l4_keeper_thick.mp3",
+   "duration": 4.96,
+   "scene": "level4",
+   "from": "story"
+  },
+  {
+   "id": "l4_vanessa_hatch",
+   "speaker": "vanessa",
+   "text": "Hello, little one. I'm Vanessa. You're safe with us.",
+   "file": "assets/audio/voice/l4_vanessa_hatch.mp3",
+   "duration": 3.06,
+   "scene": "level4",
+   "from": "story"
+  },
+  {
+   "id": "l4_daniel_mommy",
+   "speaker": "daniel",
+   "text": "Mommy has a dragon! Mommy has a dragon!",
+   "file": "assets/audio/voice/l4_daniel_mommy.mp3",
+   "duration": 3.13,
+   "scene": "level4",
+   "from": "story"
+  },
+  {
+   "id": "l5_joshua_three",
+   "speaker": "joshua",
+   "text": "Three dragons. One more. Come on, Dad, it's your turn!",
+   "file": "assets/audio/voice/l5_joshua_three.mp3",
+   "duration": 4.18,
+   "scene": "level5",
+   "from": "story"
+  },
+  {
+   "id": "l5_keeper_freed",
+   "speaker": "keeper",
+   "text": "Rest now, old friend. Your watch is over.",
+   "file": "assets/audio/voice/l5_keeper_freed.mp3",
+   "duration": 3.34,
+   "scene": "level5",
+   "from": "story"
+  },
+  {
+   "id": "l5_michael_hatch",
+   "speaker": "michael",
+   "text": "Well, hello there. I'm Michael. Strong little fellow, aren't you?",
+   "file": "assets/audio/voice/l5_michael_hatch.mp3",
+   "duration": 4.05,
+   "scene": "level5",
+   "from": "story"
+  },
+  {
+   "id": "l5_vanessa_home",
+   "speaker": "vanessa",
+   "text": "Four eggs, four dragons. Now let's go home.",
+   "file": "assets/audio/voice/l5_vanessa_home.mp3",
+   "duration": 3.19,
+   "scene": "level5",
+   "from": "story"
+  },
+  {
+   "id": "l6_dragon_mine",
+   "speaker": "dragon",
+   "text": "Those are MY dragons! They were going to follow ME!",
+   "file": "assets/audio/voice/l6_dragon_mine.mp3",
+   "duration": 2.9,
+   "scene": "level6",
+   "from": "story"
+  },
+  {
+   "id": "l6_joshua_friends",
+   "speaker": "joshua",
+   "text": "They don't follow us. They're our friends.",
+   "file": "assets/audio/voice/l6_joshua_friends.mp3",
+   "duration": 2.61,
+   "scene": "level6",
+   "from": "story"
+  },
+  {
+   "id": "l6_keeper_look",
+   "speaker": "keeper",
+   "text": "Look at them. They are not afraid of you. They never were.",
+   "file": "assets/audio/voice/l6_keeper_look.mp3",
+   "duration": 4.78,
+   "scene": "level6",
+   "from": "story"
+  },
+  {
+   "id": "l6_dragon_family",
+   "speaker": "dragon",
+   "text": "I only wanted a family of my own, I only wanted somewhere to live where I feel loved and wanted.",
+   "file": "assets/audio/voice/l6_dragon_family.mp3",
+   "duration": 5.43,
+   "scene": "level6",
+   "from": "story"
+  },
+  {
+   "id": "l6_vanessa_kind",
+   "speaker": "vanessa",
+   "text": "You can't force people to love you, but you can choose to be kind, you can choose how to treat others, and in return you'll find love, friends, and maybe a family of your own.",
+   "file": "assets/audio/voice/l6_vanessa_kind.mp3",
+   "duration": 8.78,
+   "scene": "level6",
+   "from": "story"
+  },
+  {
+   "id": "l6_dragon_love",
+   "speaker": "dragon",
+   "text": "I don't think anyone could love me.",
+   "file": "assets/audio/voice/l6_dragon_love.mp3",
+   "duration": 1.83,
+   "scene": "level6",
+   "from": "story"
+  },
+  {
+   "id": "l6_vanessa_stay",
+   "speaker": "vanessa",
+   "text": "Have you tried being kind to others? Why don't you stay? Come to the festival, meet the people who live here, spend time with the baby dragons, you might realize you can have everything you want when you treat others with kindness and respect.",
+   "file": "assets/audio/voice/l6_vanessa_stay.mp3",
+   "duration": 11.52,
+   "scene": "level6",
+   "from": "story"
+  },
+  {
+   "id": "fest_keeper_worthy",
+   "speaker": "keeper",
+   "text": "You have proved yourselves worthy. The gifts are yours to keep. But your best gift was always each other.",
+   "file": "assets/audio/voice/fest_keeper_worthy.mp3",
+   "duration": 7.97,
+   "scene": "festival",
+   "from": "story"
+  },
+  {
+   "id": "fest_daniel_stay",
+   "speaker": "daniel",
+   "text": "Can the dragons stay?",
+   "file": "assets/audio/voice/fest_daniel_stay.mp3",
+   "duration": 1.59,
+   "scene": "festival",
+   "from": "story"
+  },
+  {
+   "id": "fest_keeper_ask",
+   "speaker": "keeper",
+   "text": "Ask them.",
+   "file": "assets/audio/voice/fest_keeper_ask.mp3",
+   "duration": 0.89,
+   "scene": "festival",
+   "from": "story"
+  },
+  {
+   "id": "fest_renee_home",
+   "speaker": "renee",
+   "text": "The eggs and the family are safe, my dear. It's time for me to come home.",
+   "file": "assets/audio/voice/fest_renee_home.mp3",
+   "duration": 5.49,
+   "scene": "festival",
+   "from": "story"
+  },
+  {
+   "id": "fest_keeper_missed",
+   "speaker": "keeper",
+   "text": "I have missed you, my love.",
+   "file": "assets/audio/voice/fest_keeper_missed.mp3",
+   "duration": 2.56,
+   "scene": "festival",
+   "from": "story"
+  },
+  {
+   "id": "fest_dragon_hmph",
+   "speaker": "dragon",
+   "text": "Hmph. It is a rather nice festival.",
+   "file": "assets/audio/voice/fest_dragon_hmph.mp3",
+   "duration": 2.19,
+   "scene": "festival",
+   "from": "story"
+  },
+  {
+   "id": "fest_narrator",
+   "speaker": "narrator",
+   "text": "And so the Dragon did just that. She stayed for the festival, she laughed for the first time in her life and realized how beautiful life can be when we look for the good in the world instead of the darkness. And in the end, she found the family she had been looking for and became the Protector of the Kingdom, loved by everyone, and they all lived happily ever after.",
+   "file": "assets/audio/voice/fest_narrator.mp3",
+   "duration": 23.9,
+   "scene": "festival",
+   "from": "story"
+  },
+  {
+   "id": "hint_l1_brambles",
+   "speaker": "keeper",
+   "text": "Daniel, your fire can burn those brambles away.",
+   "file": "assets/audio/voice/hint_l1_brambles.mp3",
+   "duration": 3.74,
+   "scene": "level1",
+   "from": "added"
+  },
+  {
+   "id": "hint_l1_boulder",
+   "speaker": "keeper",
+   "text": "Michael, you are strong enough to move that boulder.",
+   "file": "assets/audio/voice/hint_l1_boulder.mp3",
+   "duration": 3.29,
+   "scene": "level1",
+   "from": "added"
+  },
+  {
+   "id": "hint_l1_stream",
+   "speaker": "keeper",
+   "text": "Vanessa, freeze the stream so everyone can cross.",
+   "file": "assets/audio/voice/hint_l1_stream.mp3",
+   "duration": 3.76,
+   "scene": "level1",
+   "from": "added"
+  },
+  {
+   "id": "hint_l1_charge",
+   "speaker": "keeper",
+   "text": "Joshua, only you can outrun the bear. Run!",
+   "file": "assets/audio/voice/hint_l1_charge.mp3",
+   "duration": 4.41,
+   "scene": "level1",
+   "from": "added"
+  },
+  {
+   "id": "hint_l2_overgrowth",
+   "speaker": "keeper",
+   "text": "Daniel, burn away the overgrowth with your fire.",
+   "file": "assets/audio/voice/hint_l2_overgrowth.mp3",
+   "duration": 3.87,
+   "scene": "level2",
+   "from": "added"
+  },
+  {
+   "id": "hint_l2_bridge",
+   "speaker": "keeper",
+   "text": "Michael, hold the bridge steady with your strength.",
+   "file": "assets/audio/voice/hint_l2_bridge.mp3",
+   "duration": 3.47,
+   "scene": "level2",
+   "from": "added"
+  },
+  {
+   "id": "hint_l2_waterfall",
+   "speaker": "keeper",
+   "text": "Vanessa, freeze the waterfall into steps.",
+   "file": "assets/audio/voice/hint_l2_waterfall.mp3",
+   "duration": 3.29,
+   "scene": "level2",
+   "from": "added"
+  },
+  {
+   "id": "hint_l2_leap",
+   "speaker": "keeper",
+   "text": "Joshua, run fast and leap to the nest.",
+   "file": "assets/audio/voice/hint_l2_leap.mp3",
+   "duration": 3.37,
+   "scene": "level2",
+   "from": "added"
+  },
+  {
+   "id": "hint_l3_slope",
+   "speaker": "keeper",
+   "text": "Joshua, race up the ash slope with Speedy.",
+   "file": "assets/audio/voice/hint_l3_slope.mp3",
+   "duration": 3.47,
+   "scene": "level3",
+   "from": "added"
+  },
+  {
+   "id": "hint_l3_vents",
+   "speaker": "keeper",
+   "text": "Vanessa, cool the hot vents with your ice.",
+   "file": "assets/audio/voice/hint_l3_vents.mp3",
+   "duration": 3.24,
+   "scene": "level3",
+   "from": "added"
+  },
+  {
+   "id": "hint_l3_rock",
+   "speaker": "keeper",
+   "text": "Michael, lift the fallen rock out of the way.",
+   "file": "assets/audio/voice/hint_l3_rock.mp3",
+   "duration": 3.08,
+   "scene": "level3",
+   "from": "added"
+  },
+  {
+   "id": "hint_l3_tunnel",
+   "speaker": "keeper",
+   "text": "Daniel, light the dark tunnel with your fire.",
+   "file": "assets/audio/voice/hint_l3_tunnel.mp3",
+   "duration": 3.16,
+   "scene": "level3",
+   "from": "added"
+  },
+  {
+   "id": "hint_l4_icewall",
+   "speaker": "keeper",
+   "text": "Daniel, melt the ice wall with Ember.",
+   "file": "assets/audio/voice/hint_l4_icewall.mp3",
+   "duration": 3.06,
+   "scene": "level4",
+   "from": "added"
+  },
+  {
+   "id": "hint_l4_key",
+   "speaker": "keeper",
+   "text": "Joshua, dash across the thin ice with Speedy.",
+   "file": "assets/audio/voice/hint_l4_key.mp3",
+   "duration": 3.6,
+   "scene": "level4",
+   "from": "added"
+  },
+  {
+   "id": "hint_l4_snowdrift",
+   "speaker": "keeper",
+   "text": "Michael, clear the snowdrift with your strength.",
+   "file": "assets/audio/voice/hint_l4_snowdrift.mp3",
+   "duration": 3.29,
+   "scene": "level4",
+   "from": "added"
+  },
+  {
+   "id": "hint_l4_storm",
+   "speaker": "keeper",
+   "text": "Vanessa, calm the storm with your ice.",
+   "file": "assets/audio/voice/hint_l4_storm.mp3",
+   "duration": 3.24,
+   "scene": "level4",
+   "from": "added"
+  },
+  {
+   "id": "hint_l5_chasm",
+   "speaker": "keeper",
+   "text": "Vanessa, freeze a bridge over the chasm with Frosty.",
+   "file": "assets/audio/voice/hint_l5_chasm.mp3",
+   "duration": 3.71,
+   "scene": "level5",
+   "from": "added"
+  },
+  {
+   "id": "hint_l5_ramp",
+   "speaker": "keeper",
+   "text": "Joshua, race up the steep ramp with Speedy.",
+   "file": "assets/audio/voice/hint_l5_ramp.mp3",
+   "duration": 3.32,
+   "scene": "level5",
+   "from": "added"
+  },
+  {
+   "id": "hint_l5_lamps",
+   "speaker": "keeper",
+   "text": "Daniel, light the old lamps with Ember.",
+   "file": "assets/audio/voice/hint_l5_lamps.mp3",
+   "duration": 3.06,
+   "scene": "level5",
+   "from": "added"
+  },
+  {
+   "id": "hint_l5_block",
+   "speaker": "keeper",
+   "text": "Michael, push the great stone block.",
+   "file": "assets/audio/voice/hint_l5_block.mp3",
+   "duration": 3.03,
+   "scene": "level5",
+   "from": "added"
+  },
+  {
+   "id": "hint_l6_gate",
+   "speaker": "keeper",
+   "text": "Michael, open the stone gate with Samson.",
+   "file": "assets/audio/voice/hint_l6_gate.mp3",
+   "duration": 3.21,
+   "scene": "level6",
+   "from": "added"
+  },
+  {
+   "id": "hint_l6_river",
+   "speaker": "keeper",
+   "text": "Vanessa, bridge the river with Frosty.",
+   "file": "assets/audio/voice/hint_l6_river.mp3",
+   "duration": 2.87,
+   "scene": "level6",
+   "from": "added"
+  },
+  {
+   "id": "hint_l6_seal",
+   "speaker": "keeper",
+   "text": "Daniel, melt the ice seal with Ember.",
+   "file": "assets/audio/voice/hint_l6_seal.mp3",
+   "duration": 3.32,
+   "scene": "level6",
+   "from": "added"
+  },
+  {
+   "id": "hint_l6_door",
+   "speaker": "keeper",
+   "text": "Joshua, dash through the door with Speedy.",
+   "file": "assets/audio/voice/hint_l6_door.mp3",
+   "duration": 2.98,
+   "scene": "level6",
+   "from": "added"
+  },
+  {
+   "id": "hint_path",
+   "speaker": "keeper",
+   "text": "Keep going along the path.",
+   "file": "assets/audio/voice/hint_path.mp3",
+   "duration": 2.12,
+   "scene": "any",
+   "from": "added"
+  },
+  {
+   "id": "hint_jump",
+   "speaker": "keeper",
+   "text": "Take a little run, and jump across the gap.",
+   "file": "assets/audio/voice/hint_jump.mp3",
+   "duration": 3.03,
+   "scene": "any",
+   "from": "added"
+  },
+  {
+   "id": "hint_ride",
+   "speaker": "keeper",
+   "text": "Wait for the platform, then ride it across.",
+   "file": "assets/audio/voice/hint_ride.mp3",
+   "duration": 3.21,
+   "scene": "any",
+   "from": "added"
+  },
+  {
+   "id": "hint_creature",
+   "speaker": "keeper",
+   "text": "Use your gift to free that creature.",
+   "file": "assets/audio/voice/hint_creature.mp3",
+   "duration": 3.03,
+   "scene": "any",
+   "from": "added"
+  },
+  {
+   "id": "hint_guardian_near",
+   "speaker": "keeper",
+   "text": "The guardian is waiting just ahead.",
+   "file": "assets/audio/voice/hint_guardian_near.mp3",
+   "duration": 2.4,
+   "scene": "any",
+   "from": "added"
+  },
+  {
+   "id": "hint_fight",
+   "speaker": "keeper",
+   "text": "Use your gift to break the spell.",
+   "file": "assets/audio/voice/hint_fight.mp3",
+   "duration": 2.74,
+   "scene": "any",
+   "from": "added"
+  },
+  {
+   "id": "hint_dragon",
+   "speaker": "keeper",
+   "text": "Keep using your gifts until her anger runs out.",
+   "file": "assets/audio/voice/hint_dragon.mp3",
+   "duration": 3.34,
+   "scene": "level6",
+   "from": "added"
+  },
+  {
+   "id": "hint_egg",
+   "speaker": "keeper",
+   "text": "The egg is waiting. Go and say hello.",
+   "file": "assets/audio/voice/hint_egg.mp3",
+   "duration": 2.98,
+   "scene": "any",
+   "from": "added"
+  }
+ ]
+}

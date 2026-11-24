@@ -1,0 +1,181 @@
+{
+  "note": "Where each sound effect came from. All are from Fish Audio: either a ready-made clip in its sound library, or a sound made with its sound effect generator from the prompt shown. `trim` is the length in seconds the game keeps.",
+  "library": {
+    "menu_ok": {
+      "id": "4a056351171e4f0d80167f4d6637e63b",
+      "title": "Button 4",
+      "trim": 0.4
+    },
+    "menu_back": {
+      "id": "a5b7ebf0e1ba47fea4dd497b9ef16df0",
+      "title": "Button 3",
+      "trim": 0.6
+    },
+    "pop": {
+      "id": "5584c76d87f543ed9094ec866b7d5384",
+      "title": "Button 1",
+      "trim": 0.5
+    },
+    "swap": {
+      "id": "58c7df41f3124d9b919dbf2545980daa",
+      "title": "Notification 1",
+      "trim": 0.9
+    },
+    "berry": {
+      "id": "d0c4d77a08b54035889b62035d099a0b",
+      "title": "Success 5",
+      "trim": 0.5
+    },
+    "gold": {
+      "id": "d1f596ef5b6e4220904ed4befe0fa51f",
+      "title": "Success 2",
+      "trim": 1.0
+    },
+    "target": {
+      "id": "6998c34bb00f4b05a29f63f683b8b525",
+      "title": "Success 1",
+      "trim": 0.5
+    },
+    "gate_open": {
+      "id": "d0e7fd8261394d1ab8f3a1e574cbfc16",
+      "title": "Alert 2",
+      "trim": 2.2
+    },
+    "level_done": {
+      "id": "dc8515681bc4484d9bb5cf584939cf59",
+      "title": "Success 3",
+      "trim": 1.5
+    },
+    "guardian_freed": {
+      "id": "4db436ca18004dc08d70447b38d639af",
+      "title": "Bell 2",
+      "trim": 5.0
+    },
+    "creature_freed": {
+      "id": "a3f49433517b467c818f282352bec23c",
+      "title": "Notification 2",
+      "trim": 2.1
+    },
+    "knot": {
+      "id": "7f36349871fb4427881595496202caac",
+      "title": "Notification 3",
+      "trim": 1.1
+    },
+    "hit": {
+      "id": "234393dc679941919f8787a4a6a8f1b3",
+      "title": "Button 5",
+      "trim": 0.5
+    },
+    "slam": {
+      "id": "7829c8a70da84d8dbe70f5e9da7d3802",
+      "title": "Punch 3",
+      "trim": 0.6
+    },
+    "strike": {
+      "id": "015f4d5702b54b879751636e5510df96",
+      "title": "Door Close 4",
+      "trim": 0.6
+    },
+    "wrong": {
+      "id": "06655e76c86d49f3afec654db2aa0f97",
+      "title": "Door Close 2",
+      "trim": 0.8
+    },
+    "caught": {
+      "id": "2f00a4a8960448ba93b5b043a6a1f79e",
+      "title": "Notification 5",
+      "trim": 1.6
+    },
+    "warning": {
+      "id": "1159c198b3234e7da2cfba71081f25d4",
+      "title": "Alert 1",
+      "trim": 1.0
+    },
+    "fall": {
+      "id": "39960a9aa2ff4a45bdc0cb4500d8692d",
+      "title": "Splash 1",
+      "trim": 1.6
+    },
+    "whoosh": {
+      "id": "ac42c083ba7b4751a16dba97378c8702",
+      "title": "Magic 1",
+      "trim": 3.0
+    },
+    "hatch": {
+      "id": "ac42c083ba7b4751a16dba97378c8702",
+      "title": "Magic 1",
+      "trim": 3.0,
+      "start": 4.4,
+      "file": "whoosh",
+      "note": "The swell in the middle of the same clip that `whoosh` takes its opening from."
+    }
+  },
+  "generated": {
+    "jump": {
+      "task": "dcbd86fe6f1a4536977d5a5953f559b2",
+      "trim": 0.6,
+      "prompt": "A playful cartoon jump sound that starts immediately: one quick rising springy boing, bright and friendly, like a platform video game character hopping, no voice",
+      "note": "Second try. The first was mostly hiss."
+    },
+    "dash": {
+      "task": "034a37d0a9444960936819069fe56ce5",
+      "trim": 0.45,
+      "prompt": "A single quick airy whoosh of someone dashing past very fast, light and bright, cartoon video game, no voice"
+    },
+    "fire": {
+      "task": "37cbd97af2b24bd2b7d2a981e7741fba",
+      "trim": 0.8,
+      "prompt": "A single small friendly magic fireball being thrown, a soft warm fwoosh, gentle cartoon video game, no voice"
+    },
+    "ice": {
+      "task": "19808c98721946428f85c53057858d00",
+      "trim": 1.2,
+      "prompt": "Ice crystals freezing quickly with a bright glassy sparkle and a crisp crackle, a short magical frost sound for a gentle cartoon video game, no voice",
+      "note": "Second try. The first came back silent."
+    },
+    "call": {
+      "task": "0d7aeed2b6ab47bc9521f20e937ac08a",
+      "trim": 1.0,
+      "prompt": "A single clear cheerful two-note whistle calling friends to come over, no other sound"
+    },
+    "web": {
+      "task": "0f174cd8c2ef4dd8a8ba91c62c971452",
+      "trim": 1.0,
+      "prompt": "A single soft sticky stretchy squelch, like stepping into a springy spider web, silly and gentle cartoon sound, no voice"
+    },
+    "chirp": {
+      "task": "8c5f1ea6f4b043e9ac87757028698952",
+      "trim": 1.0,
+      "prompt": "One cute happy chirp from a tiny baby dragon, high and sweet like a little bird crossed with a kitten, short, no background"
+    },
+    "chirps": {
+      "task": "80132ff1e6264943aeabccbca499444c",
+      "trim": 3.0,
+      "prompt": "Four cute baby dragons chirping happily together, a joyful chorus of high sweet chirps and squeaks, no background"
+    },
+    "roar": {
+      "task": "844d2e5e93a74d4896c0f73c1698bcf9",
+      "trim": 3.0,
+      "prompt": "A big grand dragon roar heard from far away, deep and grumpy but not frightening, for a children's storybook game"
+    },
+    "hurt": {
+      "task": "049529124196455db524d7b00852e22f",
+      "trim": 0.7,
+      "prompt": "A single soft cartoon bonk, a gentle padded bump with a tiny comic wobble, harmless and funny, no voice"
+    },
+    "dizzy": {
+      "task": "16b0ff7cbf804d9daea4a4f82ae8b83d",
+      "trim": 2.0,
+      "prompt": "A short cartoon dizzy sound, twinkling stars spinning around a head with a wobbly descending slide whistle, funny and gentle, no voice"
+    }
+  },
+  "failed": {
+    "note": "Sounds asked of the generator that came back silent and were not used. Each still cost 5,000 credits.",
+    "ice": "4344f86f69f048a0956fead296f44a35",
+    "hatch": [
+      "9a31819630c546b99ecdc6e4b03a7ee3",
+      "28b961a0242748daa06f55516f6fa1e5"
+    ],
+    "jump": "ef51d708ed9843d5bb7b4091f3b1f816 (mostly hiss)"
+  }
+}
