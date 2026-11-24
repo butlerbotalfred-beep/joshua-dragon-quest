@@ -302,7 +302,10 @@ The plan says to carry on with every milestone that does not depend on a pause. 
 
 ## Waiting on Michael
 
-- Nothing at the moment.
+- **3.4 Level 2 playtest (asked 2026-11-24 19:10).** After Joshua has played Level 2, Treetop Canopy, on Easy: did he finish without help, where did he get stuck, and did he ask to play again? Stage 5 (Levels 1, 3, 4, 5 and 6) does not start until this is answered, and what he reports is fixed first. Meanwhile I am doing Stage 4 and the parts of Stages 6 and 7 that do not depend on the answer.
+  - How to play it: on the Mac Studio, double-click `Play The Royal Dragon Rescue.command` in `Worlds Beyond/_rdr_play`. It fetches the newest build of this branch, serves it, and opens it in the browser. An iPad on the same Wi-Fi can open `http://Alfreds-Mac-Studio.local:8080` while that window is open. I tested the Mac side (the page, a model and a music file all arrive). I could not test from an iPad.
+  - The launcher lives only on that Mac, not in the repository. In the repository, `npm start` now accepts `HOST=0.0.0.0` so that an iPad can reach it; without it nothing changes.
+- **Lighter copies of the family's models (asked 2026-11-24 19:10).** The plan says to ask before replacing a family asset, and to keep the original and work beside it meanwhile. The game now loads lighter copies of the 36 models (pictures 1024 pixels on a side instead of 2048; 18 MB instead of 160 MB), because Level 2 would otherwise ask an iPad for about 100 MB. Every original is untouched in `originals/3d/`, and a check compares each lighter model with its original. Is that all right? If not, copying `originals/3d/` back over `assets/3d/` restores them exactly, and only milestone 6.1 is affected.
 
 ### Answered or no longer needed
 
