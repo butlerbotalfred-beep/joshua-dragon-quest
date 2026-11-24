@@ -50,3 +50,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test` — verified Space (jump) no longer skips cutscenes, and skipping the hatching cutscene at t = 0.0, 0.25, 0.5, 1.0, 1.5, 2.1, 2.5, 4.0, 5.5s always bonds the dragon in play (flag + visible dragon mesh) and persists it to localStorage.
 - **Result:** PASS (2 passed, 0 failed)
 - **Choices:** Added idempotent `grantRewards` callback on cutscene objects, invoked unconditionally by `finishCutscene()` before `onDone()`.
+
+### 1.2 Level select is safe
+- **Started:** 2026-11-24T16:03:00Z
+- **Finished:** 2026-11-24T16:03:40Z
+- **Checks:** `npm test` — bonded all 4 dragons and recorded progress, opened every level (1–6) from the Level Select menu, and verified all 4 dragons remain bonded and visible along with completed levels, highest level, and gold berries.
+- **Result:** PASS (3 passed, 0 failed)
+- **Choices:** Level Select now preserves existing `bondedDragons[i]` via logical OR with level prerequisites instead of overwriting the array.

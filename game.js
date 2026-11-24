@@ -1539,7 +1539,12 @@ class DragonQuestGame {
         this.audio.init();
         document.getElementById('level-select-screen').classList.add('hidden');
         document.getElementById('title-screen').classList.add('hidden');
-        this.bondedDragons = [lvl.index >= 2, lvl.index >= 3, lvl.index >= 4, lvl.index >= 5];
+        this.bondedDragons = [
+          this.bondedDragons[0] || lvl.index >= 2,
+          this.bondedDragons[1] || lvl.index >= 3,
+          this.bondedDragons[2] || lvl.index >= 4,
+          this.bondedDragons[3] || lvl.index >= 5,
+        ];
         this.inventory.red = Math.max(this.inventory.red, 2);
         this.inventory.green = Math.max(this.inventory.green, 2);
         this.startLevel(lvl.index, true);

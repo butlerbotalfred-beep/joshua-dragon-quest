@@ -60,5 +60,59 @@ export async function runStage1Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 1.2: Level select never removes a dragon or any progress
+  {
+    const name = '1.2: Level select preserves all four bonded dragons and progress across every level';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      await page.evaluate(() => {
+        const g = window.game;
+        g.resetSave();
+        g.bondedDragons = [true, true, true, true];
+        g.completedLevels = new Set([0, 1, 2, 3, 4, 5]);
+        g.highestLevel = 5;
+        g.collectedGoldIds = new Set(['l1_g1', 'l2_g1', 'l3_g1']);
+        g.inventory.gold = 3;
+        g.persistSave();
+      });
+
+      for (let lvl = 0; lvl < 6; lvl++) {
+        const state = await page.evaluate((idx) => {
+          const g = window.game;
+          g.openLevelSelect();
+          const tiles = document.querySelectorAll('#level-select-grid .level-tile');
+          tiles[idx].click();
+          // Dismiss intro story if shown
+          const storyBtn = document.getElementById('btn-story-continue');
+          if (!document.getElementById('story-overlay').classList.contains('hidden')) {
+            storyBtn.click();
+          }
+          g.step(0.1, 1 / 60, false);
+          return {
+            levelIdx: g.currentLevelIdx,
+            bonded: [...g.bondedDragons],
+            visibleDragons: g.heroes.map((h) => h.dragonMesh.visible),
+            completedCount: g.completedLevels.size,
+            highestLevel: g.highestLevel,
+            goldCount: g.collectedGoldIds.size,
+          };
+        }, lvl);
+
+        assert.equal(state.levelIdx, lvl, `Should have entered level ${lvl + 1}`);
+        assert.deepEqual(state.bonded, [true, true, true, true], `Level ${lvl + 1} lost dragon bond`);
+        assert.deepEqual(state.visibleDragons, [true, true, true, true], `Level ${lvl + 1} hid bonded dragon`);
+        assert.equal(state.completedCount, 6, `Level ${lvl + 1} lost completedLevels`);
+        assert.equal(state.highestLevel, 5, `Level ${lvl + 1} lost highestLevel`);
+        assert.equal(state.goldCount, 3, `Level ${lvl + 1} lost collected gold berries`);
+      }
+
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
