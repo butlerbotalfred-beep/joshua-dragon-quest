@@ -4237,6 +4237,23 @@ class DragonQuestGame {
       const xBounds = this.getCorridorXBounds(nextZ);
       let nextX = THREE.MathUtils.clamp(h.pos.x + h.vel.x * dt, xBounds.minX, xBounds.maxX);
 
+      // Co-op shared-screen tether: neither player can leave the other's view!
+      if (this.isCoop && (isP1 || isP2)) {
+        const other = this.heroes[isP1 ? this.p2Hero : this.p1Hero];
+        if (other && !other.downed) {
+          const dx = nextX - other.pos.x;
+          const dz = nextZ - other.pos.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist > TUNING.coopMaxDistance) {
+            const scale = TUNING.coopMaxDistance / dist;
+            nextX = other.pos.x + dx * scale;
+            nextZ = other.pos.z + dz * scale;
+            const bClamp = this.getCorridorXBounds(nextZ);
+            nextX = THREE.MathUtils.clamp(nextX, bClamp.minX, bClamp.maxX);
+          }
+        }
+      }
+
       // Enforce full-span unskippable gates (cannot walk around, jump over, or bypass!)
       for (const gate of this.gates) {
         if (gate.opened) continue;
@@ -4571,9 +4588,16 @@ class DragonQuestGame {
     }
     if (b.dead) return;
 
-    const target = this.heroes[this.p1Hero] && !this.heroes[this.p1Hero].downed
+    let target = this.heroes[this.p1Hero] && !this.heroes[this.p1Hero].downed
       ? this.heroes[this.p1Hero]
       : this.heroes.find((h) => !h.downed) || this.heroes[0];
+    if (this.isCoop) {
+      const h1 = this.heroes[this.p1Hero];
+      const h2 = this.heroes[this.p2Hero];
+      if (h2 && !h2.downed && (!h1 || h1.downed || h2.pos.distanceTo(b.pos) < h1.pos.distanceTo(b.pos))) {
+        target = h2;
+      }
+    }
     if (!target) return;
     const dist = target.pos.distanceTo(b.pos);
 
@@ -4814,7 +4838,7 @@ class DragonQuestGame {
       const h2 = this.heroes[this.p2Hero];
       if (h2) {
         focus.add(h2.pos).multiplyScalar(0.5);
-        zoomExtra = Math.min(14, h1.pos.distanceTo(h2.pos) * 0.65);
+        zoomExtra = Math.min(16, h1.pos.distanceTo(h2.pos) * 0.85);
       }
     }
 

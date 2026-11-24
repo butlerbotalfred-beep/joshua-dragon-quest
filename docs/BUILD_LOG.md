@@ -119,3 +119,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage2` — verified companions hurry to leader when called (`callCompanions` via `C` or Controller L3), stood still at every gate for 2 minutes (120s) verifying all gates stayed shut, and verified companions contributed gently (`20.8%` < 25%) in a guardian fight while all 240 fights in 2.4 stayed in range (`49.87s–89.97s`).
 - **Result:** PASS (5 passed, 0 failed in stage2)
 - **Choices:** Added danger-zone avoidance, rally call (`callCompanions()`), and gentle `companionGentleAssist()` with strict `fromPlayer: false` gate exclusion and dynamic damage share cap (`0.22`) in `damageBoss()`. Adjusted `GUARDIAN_HP` slightly upward to keep 45–90s / 60–120s targets centered with companion assistance.
+
+### 2.6 Two players
+- **Started:** 2026-11-24T16:36:15Z
+- **Finished:** 2026-11-24T16:37:28Z
+- **Checks:** `npm test stage2` — two virtual Xbox controllers activated 2P Co-Op and walked in opposite directions (left/right for 15s, forward/back for 15s); both players stayed comfortably on screen throughout (`maxNDC = [0.276, 0.474]`, `maxDist = 13.5u`).
+- **Result:** PASS (6 passed, 0 failed in stage2)
+- **Choices:** Added horizontal shared-screen tether (`coopMaxDistance = 13.5u`), zoomed co-op camera framing (`0.85x` separation factor), and updated guardian targeting to pick the closer standing player in co-op.

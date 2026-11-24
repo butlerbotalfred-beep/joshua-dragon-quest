@@ -487,5 +487,81 @@ export async function runStage2Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 2.6: Two players share one screen; walking opposite directions 30s keeps both on screen
+  {
+    const name = '2.6: Two controllers share one screen and stay on screen walking opposite directions for 30s';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const res = await page.evaluate(() => {
+        const g = window.game;
+        g.setDifficulty('easy', false);
+        g.startLevel(0, false);
+        g.enemies.forEach((e) => { e.dead = true; e.mesh.visible = false; });
+        g.webs.forEach((w) => { w.active = false; w.mesh.visible = false; });
+        // Place both players in open area before first gate
+        g.heroes[0].pos.set(0, 0, -4);
+        g.heroes[1].pos.set(0, 0, -4);
+        g.heroes[0].lastSafePos.set(0, 0, -4);
+        g.heroes[1].lastSafePos.set(0, 0, -4);
+
+        // Controller 1 & 2 connect -> auto drop-in 2P co-op!
+        window.__setGamepad(0, { axes: [-1, 0], buttons: {} });
+        window.__setGamepad(1, { axes: [1, 0], buttons: {} });
+        g.step(0.5, 1 / 60, true);
+        const coopActive = g.isCoop;
+
+        let maxAbsX = 0;
+        let maxAbsY = 0;
+        let maxPlayerDist = 0;
+
+        const sample = () => {
+          g.camera.updateMatrixWorld(true);
+          const h1 = g.heroes[g.p1Hero];
+          const h2 = g.heroes[g.p2Hero];
+          const dist = h1.pos.distanceTo(h2.pos);
+          if (dist > maxPlayerDist) maxPlayerDist = dist;
+          for (const h of [h1, h2]) {
+            const p = h.pos.clone();
+            p.y += 1.0;
+            p.project(g.camera);
+            if (Math.abs(p.x) > maxAbsX) maxAbsX = Math.abs(p.x);
+            if (Math.abs(p.y) > maxAbsY) maxAbsY = Math.abs(p.y);
+          }
+        };
+
+        // 15s walking opposite X (Left vs Right)
+        for (let i = 0; i < 30; i++) {
+          g.step(0.5, 1 / 60, true);
+          sample();
+        }
+        // 15s walking opposite Z (Forward vs Backward)
+        window.__setGamepad(0, { axes: [0, -1], buttons: {} });
+        window.__setGamepad(1, { axes: [0, 1], buttons: {} });
+        for (let i = 0; i < 30; i++) {
+          g.step(0.5, 1 / 60, true);
+          sample();
+        }
+        window.__setGamepad(0, null);
+        window.__setGamepad(1, null);
+
+        return {
+          coopActive,
+          maxAbsX: Number(maxAbsX.toFixed(3)),
+          maxAbsY: Number(maxAbsY.toFixed(3)),
+          maxPlayerDist: Number(maxPlayerDist.toFixed(2)),
+        };
+      });
+
+      assert.equal(res.coopActive, true, 'Controller 2 input should activate 2-player co-op');
+      assert.ok(res.maxAbsX <= 0.96, `A player left horizontal view (maxAbsX=${res.maxAbsX})`);
+      assert.ok(res.maxAbsY <= 0.96, `A player left vertical view (maxAbsY=${res.maxAbsY})`);
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name: `${name} (maxNDC=[${res.maxAbsX}, ${res.maxAbsY}], maxDist=${res.maxPlayerDist}u)`, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
