@@ -267,8 +267,9 @@ const LEVEL_DEFS = [
 // HAND-PAINTED PROCEDURAL CANVAS TEXTURES (Gives Every Biome Rich Surface Detail)
 // ============================================================================
 class TextureFactory {
-  constructor() {
+  constructor(sharedResources) {
     this.cache = {};
+    this.sharedResources = sharedResources || new WeakSet();
   }
 
   getBiomeGround(biome) {
@@ -383,6 +384,7 @@ class TextureFactory {
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.colorSpace = THREE.SRGBColorSpace;
+    this.sharedResources.add(tex);
     this.cache[biome] = tex;
     return tex;
   }
@@ -415,6 +417,7 @@ class TextureFactory {
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.colorSpace = THREE.SRGBColorSpace;
+    this.sharedResources.add(tex);
     this.cache[key] = tex;
     return tex;
   }
@@ -551,13 +554,34 @@ class AudioSystem {
 // ASSET LIBRARY — Loads All 22 Wave 1 + Wave 2 Meshy & Tripo3D GLBs!
 // ============================================================================
 class AssetLibrary {
-  constructor() {
+  constructor(sharedResources, heroTextures) {
     this.loader = new GLTFLoader();
+    this.sharedResources = sharedResources || new WeakSet();
+    this.heroTextures = heroTextures || new WeakSet();
     this.heroes = {};    // id -> { scene, walkClip, runClip }
     this.models = {};    // key -> scene (dragons, enemies, props)
     this.loadedCount = 0;
     this.totalExpected = 32; // 4 Heroes + Keeper + 5 Dragons + 7 Enemies/Bosses + 15 Tripo Props
     this.onProgress = null;
+  }
+
+  markSharedTree(root, isHero = false) {
+    const texKeys = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'alphaMap', 'aoMap', 'bumpMap'];
+    root.traverse((obj) => {
+      if (obj.geometry) this.sharedResources.add(obj.geometry);
+      if (obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const m of mats) {
+          this.sharedResources.add(m);
+          for (const k of texKeys) {
+            if (m[k]) {
+              this.sharedResources.add(m[k]);
+              if (isHero) this.heroTextures.add(m[k]);
+            }
+          }
+        }
+      }
+    });
   }
 
   async loadAll(onProgress) {
@@ -641,6 +665,7 @@ class AssetLibrary {
       mainGltf.scene.traverse((obj) => {
         if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; }
       });
+      this.markSharedTree(mainGltf.scene, true);
       this.heroes[id] = { scene: mainGltf.scene, walkClip, runClip };
       this.loadedCount++;
       this.onProgress?.(this.loadedCount, this.totalExpected);
@@ -653,6 +678,7 @@ class AssetLibrary {
       gltf.scene.traverse((obj) => {
         if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; }
       });
+      this.markSharedTree(gltf.scene);
       this.models[key] = gltf.scene;
       this.loadedCount++;
       this.onProgress?.(this.loadedCount, this.totalExpected);
@@ -870,9 +896,15 @@ class DragonQuestGame {
     this.shakeTime = 0;
     this.shakeIntensity = 0;
 
+    this.sharedResources = new WeakSet();
+    this.heroTextures = new WeakSet();
+    this.sharedParticleGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+    this.sharedResources.add(this.sharedParticleGeo);
+    this.particleMatCache = new Map();
+
     this.audio = new AudioSystem();
-    this.assets = new AssetLibrary();
-    this.textures = new TextureFactory();
+    this.assets = new AssetLibrary(this.sharedResources, this.heroTextures);
+    this.textures = new TextureFactory(this.sharedResources);
 
     // Game state
     this.mode = 'title';
@@ -1027,6 +1059,11 @@ class DragonQuestGame {
     this.dirLight.shadow.camera.bottom = -d;
     this.scene.add(this.dirLight);
     this.scene.add(this.dirLight.target);
+
+    // Fixed scene-level accent lights (constant light count prevents Three.js shader program growth)
+    this.goalAccentLight = new THREE.PointLight(0xffe066, 0, 14);
+    this.bossAccentLight = new THREE.PointLight(0xff3d00, 0, 16);
+    this.scene.add(this.goalAccentLight, this.bossAccentLight);
   }
 
   async loadAllAssets() {
@@ -1126,7 +1163,7 @@ class DragonQuestGame {
   buildTitleDiorama() {
     this.clearWorld();
     this.scene.background = new THREE.Color(0x1b2b4a);
-    this.scene.fog = new THREE.FogExp2(0x1b2b4a, 0.011);
+    this.scene.fog = new THREE.Fog(0x1b2b4a, 35, 130);
     this.addSkyBackdrop(0x142240, 0x3b4d7a, true);
 
     const grassTex = this.textures.getBiomeGround('woods');
@@ -1242,8 +1279,6 @@ class DragonQuestGame {
       const orb = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 10), mat);
       g.add(orb);
     }
-    const glow = new THREE.PointLight(glowColor, 1.2, 6);
-    g.add(glow);
     return g;
   }
 
@@ -1295,11 +1330,6 @@ class DragonQuestGame {
     if (src) {
       const { wrapper } = this.assets.instantiateNormalized(src, heightMap[bossType], false, true);
       g.add(wrapper);
-      if (bossType === 'black_dragon' || bossType === 'magma') {
-        const aura = new THREE.PointLight(0xff3d00, 3.0, 16);
-        aura.position.set(0, 3.2, 1.4);
-        g.add(aura);
-      }
     } else {
       g.add(createProceduralBoss(bossType));
     }
@@ -1328,9 +1358,6 @@ class DragonQuestGame {
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.08;
     group.add(halo);
-    const light = new THREE.PointLight(glowColor, 2.8, 11);
-    light.position.set(0, 1.2, 0);
-    group.add(light);
     return group;
   }
 
@@ -1742,8 +1769,63 @@ class DragonQuestGame {
   // ============================================================================
   // LEVEL CONSTRUCTION
   // ============================================================================
+  disposeObject3D(obj, releaseLevelGpuTextures = false) {
+    if (!obj) return;
+    const disposedGeos = new Set();
+    const disposedMats = new Set();
+    const disposedTex = new Set();
+    const disposedSkeletons = new Set();
+
+    obj.traverse((o) => {
+      if (o.isSkinnedMesh && o.skeleton && !disposedSkeletons.has(o.skeleton)) {
+        disposedSkeletons.add(o.skeleton);
+        o.skeleton.dispose();
+      }
+      if (o.geometry && !disposedGeos.has(o.geometry)) {
+        if (!this.sharedResources.has(o.geometry)) {
+          disposedGeos.add(o.geometry);
+          o.geometry.dispose();
+        }
+      }
+      if (o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        for (const m of mats) {
+          if (!m) continue;
+          // Release GPU textures for level-specific models & procedural maps when unloading a level
+          for (const val of Object.values(m)) {
+            if (!val || !val.isTexture || disposedTex.has(val)) continue;
+            if (!this.sharedResources.has(val) || (releaseLevelGpuTextures && !this.heroTextures.has(val))) {
+              disposedTex.add(val);
+              val.dispose();
+            }
+          }
+          if (!this.sharedResources.has(m) && !disposedMats.has(m)) {
+            disposedMats.add(m);
+            m.dispose();
+          }
+        }
+      }
+    });
+  }
+
   clearWorld() {
-    while (this.worldGroup.children.length > 0) this.worldGroup.remove(this.worldGroup.children[0]);
+    this.heroes.forEach((h) => {
+      if (h.mixer) {
+        h.mixer.stopAllAction();
+        h.mixer.uncacheRoot(h.mixer.getRoot());
+      }
+    });
+    while (this.worldGroup.children.length > 0) {
+      const child = this.worldGroup.children[0];
+      this.worldGroup.remove(child);
+      this.disposeObject3D(child, true);
+    }
+    if (this.textures && this.textures.cache) {
+      Object.values(this.textures.cache).forEach((tex) => tex.dispose());
+    }
+    if (this.goalAccentLight) this.goalAccentLight.intensity = 0;
+    if (this.bossAccentLight) this.bossAccentLight.intensity = 0;
+    if (this.renderer && this.renderer.renderLists) this.renderer.renderLists.dispose();
     this.floatingPopups.forEach((p) => p.el.remove());
     this.floatingPopups = [];
     this.heroes = [];
@@ -2163,9 +2245,6 @@ class DragonQuestGame {
       if (src) {
         const { wrapper } = this.assets.instantiateByWidth(src, 7.6);
         g.add(wrapper);
-        const light = new THREE.PointLight(0x5ce1ff, 1.8, 10);
-        light.position.y = 2.0;
-        g.add(light);
       } else {
         const mat = new THREE.MeshStandardMaterial({
           color: 0x8be6ff, emissive: 0x1e88e5, emissiveIntensity: 0.35, transparent: true, opacity: 0.86, roughness: 0.12,
@@ -2182,9 +2261,6 @@ class DragonQuestGame {
       if (src) {
         const { wrapper } = this.assets.instantiateByWidth(src, 7.8);
         g.add(wrapper);
-        const light = new THREE.PointLight(0xa855f7, 2.2, 11);
-        light.position.y = 2.2;
-        g.add(light);
       } else {
         const mat = new THREE.MeshStandardMaterial({ color: 0x251a30, metalness: 0.4, roughness: 0.5 });
         const glow = new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x7e22ce, emissiveIntensity: 0.85 });
@@ -2249,8 +2325,7 @@ class DragonQuestGame {
       new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffa000, emissiveIntensity: 0.9, metalness: 0.65, roughness: 0.2 })
     );
     const halo = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 8, 20), new THREE.MeshBasicMaterial({ color: 0xffe880 }));
-    const light = new THREE.PointLight(0xffd700, 1.4, 6);
-    g.add(orb, halo, light);
+    g.add(orb, halo);
     this.worldGroup.add(g);
     this.goldBerries.push({ id, mesh: g, pos: new THREE.Vector3(x, y, z), collected: false });
   }
@@ -2574,9 +2649,12 @@ class DragonQuestGame {
     );
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.08;
-    const light = new THREE.PointLight(0x69f0ae, 2.8, 12);
-    light.position.y = 2.0;
-    g.add(halo, light);
+    g.add(halo);
+    if (this.goalAccentLight) {
+      this.goalAccentLight.color.setHex(0x69f0ae);
+      this.goalAccentLight.intensity = 2.6;
+      this.goalAccentLight.position.set(x, 2.0, z);
+    }
     this.worldGroup.add(g);
     this.keeperObj = { mesh: g, pos: new THREE.Vector3(x, 0, z) };
   }
@@ -2585,6 +2663,11 @@ class DragonQuestGame {
     const mesh = this.createEggRenderable(propKey, colorHex);
     mesh.position.set(x, y, z);
     this.worldGroup.add(mesh);
+    if (this.goalAccentLight) {
+      this.goalAccentLight.color.setHex(colorHex);
+      this.goalAccentLight.intensity = 2.8;
+      this.goalAccentLight.position.set(x, y + 1.4, z);
+    }
     this.eggObj = { mesh, pos: new THREE.Vector3(x, y, z), colorHex, hatched: false };
   }
 
@@ -2964,10 +3047,14 @@ class DragonQuestGame {
   }
 
   spawnParticles(pos, color, count = 12) {
-    const geo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
-    const mat = new THREE.MeshBasicMaterial({ color });
+    let mat = this.particleMatCache.get(color);
+    if (!mat) {
+      mat = new THREE.MeshBasicMaterial({ color });
+      this.sharedResources.add(mat);
+      this.particleMatCache.set(color, mat);
+    }
     for (let i = 0; i < count; i++) {
-      const m = new THREE.Mesh(geo, mat);
+      const m = new THREE.Mesh(this.sharedParticleGeo, mat);
       m.position.copy(pos);
       this.worldGroup.add(m);
       this.particles.push({
@@ -3275,6 +3362,7 @@ class DragonQuestGame {
           }
         });
         this.worldGroup.remove(dz.mesh);
+        this.disposeObject3D(dz.mesh);
         this.dangerZones.splice(i, 1);
       }
     }
@@ -3380,6 +3468,7 @@ class DragonQuestGame {
       if (v.mesh.material) v.mesh.material.opacity = Math.max(0, (v.life / v.maxLife) * 0.9);
       if (v.life <= 0) {
         this.worldGroup.remove(v.mesh);
+        this.disposeObject3D(v.mesh);
         this.vfxMeshes.splice(i, 1);
       }
     }
@@ -3724,6 +3813,7 @@ class DragonQuestGame {
       }
       if (hit || p.life <= 0) {
         this.worldGroup.remove(p.mesh);
+        this.disposeObject3D(p.mesh);
         this.projectiles.splice(i, 1);
       }
     }

@@ -71,3 +71,12 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test` — played Level 1 as Joshua for 120 seconds near the East Glade rune block while AI Michael moved beside it; verified block moved 0 units, and verified swapping to Michael still pushes the block normally.
 - **Result:** PASS (5 passed, 0 failed)
 - **Choices:** Gated `pushPuzzles` movement on `this.p1Hero === 3 || (this.isCoop && this.p2Hero === 3)` and `!michael.trappedByWeb`.
+
+### 1.5 Memory is released
+- **Started:** 2026-11-24T16:08:30Z
+- **Finished:** 2026-11-24T16:16:20Z
+- **Checks:** `npm test` — loaded all 32 GLBs, then ran 11 level loads across all 6 biomes; verified WebGL counts stayed within 10% of the 1st load:
+  - 1st load: 57 geometries, 34 textures, 12 shader programs
+  - 11th load: 60 geometries, 33 textures, 12 shader programs
+- **Result:** PASS (6 passed, 0 failed)
+- **Choices:** Added `disposeObject3D()` in `clearWorld()` and on expiring VFX/projectiles/danger zones; called `o.skeleton.dispose()` on `SkinnedMesh` clones to free `boneTexture`s; replaced per-prop `PointLight`s with two fixed scene-level accent lights (`goalAccentLight`, `bossAccentLight`) and unified fog to `THREE.Fog` so WebGL shader program count stays constant; pooled shared particle geometry and cached particle materials.

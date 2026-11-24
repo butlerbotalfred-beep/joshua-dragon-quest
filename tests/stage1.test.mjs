@@ -155,10 +155,10 @@ export async function runStage1Tests(browser, baseUrl) {
             g.step(0.1, 1 / 60, false);
             const savedZBeforeJump = h.lastSafePos.z;
 
-            // Jump forward into the open gap (offset away from any moving platform)
+            // Jump forward into the open gap (opposite side of any moving platform)
             g.keys = { KeyW: true };
-            const hasMp = g.movingPlatforms.some((mp) => Math.abs(mp.baseZ - cz.z) <= cz.d / 2 + 2);
-            const jumpX = hasMp ? (cz.x >= 0 ? -8.5 : 8.5) : cz.x;
+            const mp = g.movingPlatforms.find((m) => Math.abs(m.baseZ - cz.z) <= cz.d / 2 + 2);
+            const jumpX = mp ? (mp.x >= 0 ? -9.2 : 9.2) : cz.x;
             h.pos.x = jumpX;
             h.lastSafePos.x = jumpX;
             g.heroJump(h);
@@ -262,6 +262,55 @@ export async function runStage1Tests(browser, baseUrl) {
       assert.ok(res.movedDistPlayer > 0.5, `Player Michael should be able to push block, moved ${res.movedDistPlayer}`);
       assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
       results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
+  // Milestone 1.5: Memory is released across 11 level loads (geometries, textures, programs within 10% of 1st load)
+  {
+    const name = '1.5: Leaving a level frees geometries, textures, and shaders within 10% after 11 loads';
+    const session = await openGame(browser, baseUrl, { waitForAssets: true });
+    try {
+      const { page } = session;
+      const mem = await page.evaluate(() => {
+        const g = window.game;
+        // Load Level 1 first
+        g.startLevel(0, false);
+        g.step(0.2, 1 / 60, true);
+        const after1 = {
+          geometries: g.renderer.info.memory.geometries,
+          textures: g.renderer.info.memory.textures,
+          programs: g.renderer.info.programs?.length || 0,
+        };
+
+        // Load levels 10 more times (total 11 level loads), ending back on Level 1 for apples-to-apples comparison
+        for (let i = 1; i <= 10; i++) {
+          const idx = i === 10 ? 0 : i % 6;
+          g.startLevel(idx, false);
+          g.step(0.2, 1 / 60, true);
+        }
+        const after11 = {
+          geometries: g.renderer.info.memory.geometries,
+          textures: g.renderer.info.memory.textures,
+          programs: g.renderer.info.programs?.length || 0,
+        };
+        return { after1, after11 };
+      });
+
+      const checkWithin10Pct = (label, v1, v11) => {
+        const maxAllowed = Math.ceil(v1 * 1.1);
+        assert.ok(
+          v11 <= maxAllowed,
+          `${label} grew >10%: after 1 load=${v1}, after 11 loads=${v11} (max allowed ${maxAllowed})`
+        );
+      };
+      checkWithin10Pct('geometries', mem.after1.geometries, mem.after11.geometries);
+      checkWithin10Pct('textures', mem.after1.textures, mem.after11.textures);
+      checkWithin10Pct('programs', mem.after1.programs, mem.after11.programs);
+
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name: `${name} (1st: ${JSON.stringify(mem.after1)} -> 11th: ${JSON.stringify(mem.after11)})`, pass: true });
     } finally {
       await session.close();
     }
