@@ -43,3 +43,10 @@ Base commit: `db7f6b9`
     - Level 6 — Great Black Dragon: Michael 3.48s, Joshua 3.68s, Daniel 4.05s, Vanessa 5.05s (matches audit's 3.5s–5.1s).
 - **Result:** PASS
 - **Choices:** Kept `tests/baseline.mjs` in `tests/` as a standalone diagnostic script (not part of `npm test` regression suite).
+
+### 1.1 Skipping is safe
+- **Started:** 2026-11-24T16:01:15Z
+- **Finished:** 2026-11-24T16:02:25Z
+- **Checks:** `npm test` — verified Space (jump) no longer skips cutscenes, and skipping the hatching cutscene at t = 0.0, 0.25, 0.5, 1.0, 1.5, 2.1, 2.5, 4.0, 5.5s always bonds the dragon in play (flag + visible dragon mesh) and persists it to localStorage.
+- **Result:** PASS (2 passed, 0 failed)
+- **Choices:** Added idempotent `grantRewards` callback on cutscene objects, invoked unconditionally by `finishCutscene()` before `onDone()`.

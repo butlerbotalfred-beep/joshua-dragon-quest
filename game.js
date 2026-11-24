@@ -1626,12 +1626,17 @@ class DragonQuestGame {
         document.getElementById('btn-audio-toggle').textContent = m ? '🔇' : '🔊';
         return;
       }
-      if (this.mode === 'cutscene' && (code === 'Enter' || code === 'Space')) {
+      if (this.mode === 'cutscene' && code === 'Enter') {
         e.preventDefault();
         this.finishCutscene();
         return;
       }
-      if (this.mode === 'story' && (code === 'Enter' || code === 'Space')) {
+      if (this.mode === 'cutscene' && code === 'Space') {
+        // Jump key must never skip a cutscene!
+        e.preventDefault();
+        return;
+      }
+      if (this.mode === 'story' && code === 'Enter') {
         e.preventDefault();
         document.getElementById('btn-story-continue').click();
         return;
@@ -1987,21 +1992,36 @@ class DragonQuestGame {
     this.worldGroup.add(beam);
 
     this.audio.sfxHatch();
+    const eggPos = this.eggObj.pos.clone();
+    const grantHatchReward = () => {
+      if (this.eggObj) {
+        this.eggObj.hatched = true;
+        this.eggObj.mesh.visible = false;
+      }
+      this.bondedDragons[heroIdx] = true;
+      if (hero && hero.dragonMesh) {
+        hero.dragonMesh.visible = true;
+        hero.dragonMesh.position.copy(eggPos).add(new THREE.Vector3(0, 1.4, 0));
+      }
+      this.completedLevels.add(this.currentLevelIdx);
+      this.highestLevel = Math.max(this.highestLevel, Math.min(5, this.currentLevelIdx + 1));
+      this.persistSave();
+      this.updateHUD();
+    };
     this.cutscene = {
       type: 'hatch',
       elapsed: 0,
       duration: 5.5,
       hero,
       heroIdx,
-      eggPos: this.eggObj.pos.clone(),
+      eggPos,
       beam,
       hatchedBurst: false,
       def,
+      grantRewards: grantHatchReward,
       onDone: () => {
         this.worldGroup.remove(beam);
-        this.completedLevels.add(this.currentLevelIdx);
-        this.highestLevel = Math.max(this.highestLevel, Math.min(5, this.currentLevelIdx + 1));
-        this.persistSave();
+        grantHatchReward();
         this.showStoryModal(def.outroStory, () => this.startLevel(this.currentLevelIdx + 1, true));
       },
     };
@@ -2092,10 +2112,11 @@ class DragonQuestGame {
 
   finishCutscene() {
     if (!this.cutscene) return;
-    const cb = this.cutscene.onDone;
+    const cs = this.cutscene;
     this.cutscene = null;
     document.getElementById('cutscene-ui').classList.add('hidden');
-    if (cb) cb();
+    if (typeof cs.grantRewards === 'function') cs.grantRewards();
+    if (cs.onDone) cs.onDone();
   }
 
   addObstacle(type, x, z, y = 0) {
