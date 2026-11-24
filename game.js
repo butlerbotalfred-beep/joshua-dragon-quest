@@ -957,6 +957,7 @@ class DragonQuestGame {
     this.cutscene = null;
     this.levelGoalTriggered = false;
     this.alertTimer = 0;
+    this.companionRallyTimer = 0;
     this.clock = new THREE.Clock();
     this.simTime = 0;
     this.manualStepping = false;
@@ -1726,6 +1727,7 @@ class DragonQuestGame {
       if (code === 'KeyR') this.useRedBerry();
       if (code === 'KeyG' && !this.isCoop) this.useGreenBerry();
       if (code === 'KeyT' && this.isCoop) this.useGreenBerry();
+      if (code === 'KeyC' && !this.isCoop) this.callCompanions();
 
       if (!this.isCoop) {
         if (code === 'Digit1') this.swapHero(1, 0);
@@ -3005,6 +3007,7 @@ class DragonQuestGame {
         onGround: true, trappedByWeb: null,
         downed: false, reviveProgress: 0,
         armorTimer: 0, attackCd: 0, hurtCd: 0, sprintBoostTimer: 0, dragonAssistCd: 0,
+        companionAtkCd: 2.0 + i * 0.65,
       };
     });
   }
@@ -3692,6 +3695,7 @@ class DragonQuestGame {
       }
       if (justPressed(6)) this.useRedBerry();                              // LT -> Red Berry
       if (justPressed(8)) this.useGreenBerry();                            // View -> Green Berry
+      if (!this.isCoop && justPressed(10)) this.callCompanions();          // L3 -> Call family
     }
 
     const gpPill = document.getElementById('gamepad-pill');
@@ -3996,8 +4000,100 @@ class DragonQuestGame {
     return v;
   }
 
+  callCompanions() {
+    if (this.isCoop || (this.mode !== 'playing' && this.mode !== 'festival')) return;
+    const leader = this.heroes[this.p1Hero];
+    if (!leader) return;
+    this.companionRallyTimer = 3.0;
+    this.audio.sfxSwap();
+    this.spawnParticles(leader.pos.clone().add(new THREE.Vector3(0, 1.3, 0)), 0xffe066, 14);
+    this.showAlert('Family, gather up!', 1.8);
+  }
+
+  companionGentleAssist(h) {
+    // Companions NEVER open gates and NEVER spend player magic.
+    // During active fights they chip in gently (< 25% of total work).
+    let targetPos = null;
+    let targetEnemy = null;
+    let isBoss = false;
+
+    if (this.boss && !this.boss.dead && this.boss.activated && this.boss.damageByPlayer > 0) {
+      if (h.pos.distanceTo(this.boss.pos) < 15) {
+        targetPos = this.boss.pos;
+        isBoss = true;
+      }
+    }
+    if (!targetPos) {
+      let bestDist = 9.5;
+      for (const en of this.enemies) {
+        if (en.dead) continue;
+        const d = h.pos.distanceTo(en.pos);
+        if (d < bestDist) {
+          bestDist = d;
+          targetEnemy = en;
+          targetPos = en.pos;
+        }
+      }
+    }
+    if (!targetPos) return false;
+
+    const dir = targetPos.clone().sub(h.pos);
+    dir.y = 0;
+    if (dir.lengthSq() < 0.04) return false;
+    dir.normalize();
+    h.facing = Math.atan2(dir.x, dir.z);
+
+    if (isBoss) {
+      // Gentle elemental bolt or strike (strictly fromPlayer: false, never opens gates)
+      const elem = ['wind', 'fire', 'ice', 'strength'][h.index];
+      const dmg = 4;
+      if (h.index === 1 || h.index === 2) {
+        this.spawnProjectile({
+          kind: elem,
+          ownerHeroIdx: h.index,
+          fromPlayer: false,
+          pos: h.pos.clone().add(new THREE.Vector3(0, 1.15, 0)).addScaledVector(dir, 0.8),
+          vel: dir.clone().multiplyScalar(18),
+          radius: 0.55,
+          damage: dmg,
+          color: h.def.color,
+          life: 1.5,
+        });
+      } else {
+        const strikePos = h.pos.clone().addScaledVector(dir, 1.6);
+        this.spawnSlashVfx(strikePos, h.facing, h.def.color, 1.9);
+        if (h.pos.distanceTo(this.boss.pos) < 5.5) {
+          this.damageBoss(dmg, elem, false);
+        }
+      }
+      return true;
+    } else if (targetEnemy) {
+      const elem = ['wind', 'fire', 'ice', 'strength'][h.index];
+      if (h.pos.distanceTo(targetEnemy.pos) < 3.4) {
+        this.spawnSlashVfx(h.pos.clone().addScaledVector(dir, 1.4), h.facing, h.def.color, 1.8);
+        this.damageEnemy(targetEnemy, 5, elem);
+        return true;
+      } else if (h.index === 1 || h.index === 2) {
+        this.spawnProjectile({
+          kind: elem,
+          ownerHeroIdx: h.index,
+          fromPlayer: false,
+          pos: h.pos.clone().add(new THREE.Vector3(0, 1.15, 0)).addScaledVector(dir, 0.8),
+          vel: dir.clone().multiplyScalar(17),
+          radius: 0.5,
+          damage: 5,
+          color: h.def.color,
+          life: 1.3,
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
   updateHeroes(dt) {
     const t = this.simTime;
+    if (this.companionRallyTimer > 0) this.companionRallyTimer = Math.max(0, this.companionRallyTimer - dt);
     const leader = this.heroes[this.p1Hero];
 
     this.heroes.forEach((h, idx) => {
@@ -4082,16 +4178,47 @@ class DragonQuestGame {
         if (isP1) moveDir = this.getPlayerMoveInput(1);
         else if (isP2) moveDir = this.getPlayerMoveInput(2);
         else if (leader) {
-          const angle = idx * 1.55 + 1.1;
-          const targetPos = leader.pos.clone().add(new THREE.Vector3(Math.cos(angle) * 2.8, 0, Math.sin(angle) * 2.8 + 1.2));
-          const toTarget = targetPos.sub(h.pos);
-          toTarget.y = 0;
-          if (toTarget.length() > 14) {
-            h.pos.copy(leader.pos).add(new THREE.Vector3((idx - 1.5) * 1.4, 0.5, 1.5));
-            h.vel.set(0, 0, 0);
-          } else if (toTarget.length() > 1.2) {
-            moveDir.copy(toTarget.normalize());
-            moveSpeed = Math.min(moveSpeed, leader.def.speed * 1.12);
+          if (h.companionAtkCd > 0) h.companionAtkCd -= dt;
+          // 1. Dodge active danger zones smartly
+          let evading = false;
+          for (const dz of this.dangerZones) {
+            const away = h.pos.clone().sub(dz.pos);
+            away.y = 0;
+            const d = away.length();
+            if (d < dz.radius + 1.2) {
+              if (d > 0.05) moveDir.copy(away.normalize());
+              else moveDir.set(1, 0, 0);
+              moveSpeed = Math.max(moveSpeed, 9.5);
+              evading = true;
+              break;
+            }
+          }
+
+          if (!evading) {
+            const rallying = this.companionRallyTimer > 0;
+            const spread = rallying ? 1.7 : 2.8;
+            const angle = idx * 1.55 + 1.1;
+            const targetPos = leader.pos.clone().add(new THREE.Vector3(Math.cos(angle) * spread, 0, Math.sin(angle) * spread + (rallying ? 0.6 : 1.2)));
+            const toTarget = targetPos.sub(h.pos);
+            toTarget.y = 0;
+            const distToTarget = toTarget.length();
+
+            if (distToTarget > 14 && !this.gates.some((gt) => !gt.opened && leader.pos.z < gt.blockZ && h.pos.z >= gt.blockZ)) {
+              h.pos.copy(leader.pos).add(new THREE.Vector3((idx - 1.5) * 1.4, 0.5, 1.5));
+              h.vel.set(0, 0, 0);
+            } else if (distToTarget > (rallying ? 0.65 : 1.2)) {
+              moveDir.copy(toTarget.normalize());
+              moveSpeed = rallying ? Math.max(moveSpeed, leader.def.speed * 1.35) : Math.min(moveSpeed, leader.def.speed * 1.12);
+            }
+
+            // 2. Gentle combat assist during active fights (never opens gates!)
+            if (!rallying && this.mode === 'playing' && h.companionAtkCd <= 0) {
+              if (this.companionGentleAssist(h)) {
+                h.companionAtkCd = 3.2 + (idx % 3) * 0.45;
+              } else {
+                h.companionAtkCd = 0.6;
+              }
+            }
           }
         }
       }

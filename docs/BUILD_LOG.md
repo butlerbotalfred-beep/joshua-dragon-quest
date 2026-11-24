@@ -112,3 +112,10 @@ Base commit: `db7f6b9`
   - Every guardian ended freed, friendly, and visible in the arena with spell broken.
 - **Result:** PASS (4 passed, 0 failed in stage2)
 - **Choices:** Centralized hero combat damage/cooldowns and guardian HP in `src/config.js`; added ice slow (`0.55x`) + capped chill hold (`1.2s`) + `5.5s` ice-hold immunity cooldown; kept freed guardians visible with a warm green-gold friendly aura ring; fixed a re-entrant projectile splice bug when a projectile lands the freeing blow.
+
+### 2.5 Companions
+- **Started:** 2026-11-24T16:33:20Z
+- **Finished:** 2026-11-24T16:35:45Z
+- **Checks:** `npm test stage2` — verified companions hurry to leader when called (`callCompanions` via `C` or Controller L3), stood still at every gate for 2 minutes (120s) verifying all gates stayed shut, and verified companions contributed gently (`20.8%` < 25%) in a guardian fight while all 240 fights in 2.4 stayed in range (`49.87s–89.97s`).
+- **Result:** PASS (5 passed, 0 failed in stage2)
+- **Choices:** Added danger-zone avoidance, rally call (`callCompanions()`), and gentle `companionGentleAssist()` with strict `fromPlayer: false` gate exclusion and dynamic damage share cap (`0.22`) in `damageBoss()`. Adjusted `GUARDIAN_HP` slightly upward to keep 45–90s / 60–120s targets centered with companion assistance.

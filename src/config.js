@@ -47,12 +47,12 @@ export const DIFFICULTIES = {
 export const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'];
 
 export const GUARDIAN_HP = {
-  bear: 1120,
-  vine: 1180,
-  magma: 1220,
-  yeti: 1260,
-  gargoyle: 1300,
-  black_dragon: 1580,
+  bear: 1220,
+  vine: 1280,
+  magma: 1320,
+  yeti: 1360,
+  gargoyle: 1400,
+  black_dragon: 1780,
 };
 
 export const HERO_COMBAT = [

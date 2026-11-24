@@ -390,5 +390,102 @@ export async function runStage2Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 2.5: Companions follow, come when called, never open a gate in 2 min, and stay under 25% of fight damage
+  {
+    const name = '2.5: Companions rally on call, never open gates in 2 min, and deal <25% of boss damage';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const res = await page.evaluate(() => {
+        const g = window.game;
+        g.setDifficulty('easy', false);
+        g.bondedDragons = [true, true, true, true];
+        g.startLevel(0, false);
+        g.enemies.forEach((e) => { e.dead = true; e.mesh.visible = false; });
+        g.webs.forEach((w) => { w.active = false; w.mesh.visible = false; });
+
+        // 1. Call companions test: spread companions 10u away, call them, verify they gather close
+        g.p1Hero = 0;
+        g.heroes[0].pos.set(0, 0, 0);
+        g.heroes[1].pos.set(-9, 0, 8);
+        g.heroes[2].pos.set(9, 0, 8);
+        g.heroes[3].pos.set(0, 0, 10);
+        g.callCompanions();
+        g.step(2.5, 1 / 60, false);
+        const maxDistAfterCall = Math.max(
+          g.heroes[1].pos.distanceTo(g.heroes[0].pos),
+          g.heroes[2].pos.distanceTo(g.heroes[0].pos),
+          g.heroes[3].pos.distanceTo(g.heroes[0].pos)
+        );
+
+        // 2. Stand still at EVERY gate for 2 minutes (120s) -> gate must stay shut!
+        const gateStayShut = [];
+        const sortedGates = [...g.gates].sort((a, b) => b.z - a.z);
+        for (const gate of sortedGates) {
+          // Pick a hero who is NOT the gate's required hero, so the required hero IS an AI companion!
+          const playerIdx = (gate.requiredHeroIdx + 1) % 4;
+          g.p1Hero = playerIdx;
+          const waitZ = gate.z + (gate.chasmZone ? gate.chasmZone.d / 2 + 2.5 : 3.5);
+          g.heroes.forEach((h, hi) => {
+            h.pos.set((hi - 1.5) * 1.4, 0, waitZ);
+            h.lastSafePos.copy(h.pos);
+            h.vel.set(0, 0, 0);
+          });
+          g.step(120, 1 / 30, false);
+          gateStayShut.push({ gateId: gate.id, opened: gate.opened });
+          // Open it manually now so we can move to the next gate cleanly
+          g.openGate(gate);
+        }
+
+        // 3. Fight a guardian to completion in solo play and check companion share < 0.25 (and > 0)
+        g.startLevel(0, false);
+        g.p1Hero = 0;
+        const p1 = g.heroes[0];
+        g.heroes.forEach((h, hi) => {
+          h.pos.set(g.boss.pos.x + (hi - 1.5) * 1.5, g.boss.pos.y, g.boss.pos.z + 4.5);
+          h.lastSafePos.copy(h.pos);
+        });
+        let elapsed = 0;
+        let atkT = 0;
+        while (!g.boss.dead && elapsed < 120) {
+          const dx = p1.pos.x - g.boss.pos.x;
+          const dz = p1.pos.z - g.boss.pos.z;
+          const d = Math.hypot(dx, dz) || 1;
+          if (d > 3.5) {
+            p1.pos.x = g.boss.pos.x + (dx / d) * 2.8;
+            p1.pos.z = g.boss.pos.z + (dz / d) * 2.8;
+          }
+          atkT += 1 / 30;
+          if (atkT >= 0.6) { atkT = 0; g.heroPrimaryAbility(p1); }
+          g.step(1 / 30, 1 / 30, false);
+          elapsed += 1 / 30;
+        }
+        const totalDmg = g.boss.damageByPlayer + g.boss.damageByCompanions;
+        const companionShare = totalDmg > 0 ? g.boss.damageByCompanions / totalDmg : 0;
+
+        return {
+          maxDistAfterCall: Number(maxDistAfterCall.toFixed(2)),
+          gateStayShut,
+          damageByPlayer: g.boss.damageByPlayer,
+          damageByCompanions: g.boss.damageByCompanions,
+          companionShare: Number(companionShare.toFixed(3)),
+          bossFreed: g.boss.freed,
+        };
+      });
+
+      assert.ok(res.maxDistAfterCall < 4.5, `Companions should gather close when called, maxDist=${res.maxDistAfterCall}`);
+      for (const gs of res.gateStayShut) {
+        assert.equal(gs.opened, false, `Companion opened gate ${gs.gateId} while player stood still!`);
+      }
+      assert.equal(res.bossFreed, true, 'Guardian should be freed');
+      assert.ok(res.damageByCompanions > 0, 'Companions should help gently (> 0 damage)');
+      assert.ok(res.companionShare < 0.25, `Companion share ${res.companionShare} must be < 0.25`);
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name: `${name} (share=${(res.companionShare * 100).toFixed(1)}%)`, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
