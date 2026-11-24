@@ -270,6 +270,58 @@ This is my guess at a six-year-old, not a measurement of one. The first real mea
 - The other family members are not moved for the hatching scene; the camera stays on Joshua and the egg, and Michael speaks from beside them.
 - Level 2 has no opening line of its own in the story draft, so it starts straight into play. (The Keeper's news between levels belongs to milestone 4.2.)
 
+## Stage 4: the story around the levels (milestones 4.1 to 4.3)
+
+- Started: 2026-11-24 18:20 (the scenes and their checks were drafted while Stage 3's last run was going, and wired into the game from 18:54).
+- Finished: 2026-11-24 19:08.
+- The plan says to continue to Stage 4 while the Level 2 playtest (3.4) is awaited.
+
+### Milestone 4.1 Prologue
+
+- What I built: `src/levels/prologue.js`, a place with a scene and no play. The family is in the meadow below the castle. Each walks to a berry bush and picks. The Great Black Dragon comes down out of the sky onto the castle and roars, and four lights streak away across the sky: the eggs. Joshua and the dragon speak. The Keeper walks out from the trees beyond the edge of the path, in person, to within a few steps of the family, and they turn to him. He tells the dragon's story, names Renee as his Ward and his wife, and gives the four gifts: each of the family glows with a chime as their gift is named. He sets the task, Michael answers, and Level 1 begins. It runs 66 seconds and uses the story draft's nine lines in order, and no others.
+- A new game opens on it, after the difficulty and hero are chosen. It is saved as seen, and Play goes to the map from then on. The Menu button skips it at any moment.
+- What I checked, by controller in the test browser:
+  - From a new game the bot presses A four times and then only watches. The nine lines are spoken in the story draft's order, once each, with nothing else spoken. Four berries are picked before the dragon appears. The dragon starts high and ends on the castle. Four eggs streak away. The Keeper starts beyond the edge of the path and has stopped within 14 steps of every one of the family before his first word. The four gifts are given in order during the line that names them. No more than 8 words are ever on screen. Then Level 1 begins with the gift display showing, and the bot swaps to each of the four heroes in turn and uses each gift: speed, fire, ice and strength all work. Result: pass.
+  - Skipped at ten moments from 0.2 to 65 seconds: every time Level 1 begins, the gifts show, and the prologue is saved as seen. Play then goes to the map, not the prologue. Result: pass.
+- Level 1 is built in Stage 5. Until then a practice level stands in for it in the check, and in the real game the prologue is followed by the map.
+
+### Milestone 4.2 Renee's news
+
+- What I built: `src/story.js`. The story draft has two updates about the dragon, both the Keeper's lines and both worded as Renee's news: "Renee sends word from the castle..." when the family meets him again at the end of Level 1, and "Renee tells me the dragon knows two eggs have hatched..." when the golem is freed in Level 3. Each is a small scene added at that moment: the Keeper is there in person, Renee's owl flies down to him, and he speaks. In Level 3 he walks into the arena from the way out, gives the news and walks back. The scenes belong to the place in the story, not to a level's layout, so they will play in the real Levels 1 and 3 without more work.
+- Renee meets the family at the castle door at the start of Level 6: she is waiting beside the doorway, waves, walks through it ahead of them and waits inside, off to one side. Skipping the scene puts her there at once.
+- What I checked:
+  - The update lines are found by reading the story draft (a Keeper line in a level that names Renee), and they are exactly the two the game gives, each at the place the story draft says. Result: pass.
+  - A bot plays to the end of Level 1: "Renee sends word" is spoken once, in the scene at the meeting, before the level is finished. A bot frees the golem in Level 3: "Renee tells me" is spoken once, in the scene that follows the freeing. Both times the Keeper is within 16 steps, the owl has flown down from above and is at his shoulder when he speaks, the owl leaves afterwards, and no more than 8 words are on screen. Result: pass.
+  - Level 6 opens with Renee beside the door, 3.6 steps from it. She walks through the doorway and ends 9.5 steps further in, out of the family's way. Watched or skipped at 0.5 or 3 seconds, the family can then walk on through the door. Result: pass.
+- Levels 1, 3 and 6 are built in Stage 5; practice levels stand in for them in these checks, and each check says so when it runs.
+
+### Milestone 4.3 The festival
+
+- What I built: `src/levels/festival.js`, the place after Level 6. Night at the castle, the five freed guardians as guests, the Great Black Dragon, the Keeper and Renee, and lanterns along both sides of the path: one pair for every gold berry in the save. The story draft's order: the Keeper says the family proved worthy and each of them glows as the gifts become theirs to keep; Daniel asks if the little dragons can stay; the Keeper says to ask them and all four zoom around their heroes, chirping; Renee comes home; the Keeper says he has missed her and they come together and embrace; the dragon stays, with her "hmph"; the Narrator closes. Then a screen that says "The End", with a lantern for each gold berry, and the way back to the map.
+- What I checked: a bot finishes Level 6 holding 3 gold berries, and again holding all 18. Each time the festival follows, the lantern pairs counted in the scene equal the gold berries (3 and 3, 18 and 18), the guests and all four little dragons are there, the seven lines come in the story draft's order with the chirps between the fourth and fifth, the embrace comes after the Keeper's line to Renee, no more than 8 words are on screen, the game is saved as finished, and the end screen leads to the map. Skipping the festival at any point still reaches the end screen with the save marked finished. Result: pass.
+
+### The automated run
+
+The whole suite, 19:04 to 19:08: 50 checks, 50 passed. Seven are new for Stage 4. Loading sizes now cover three places: Festival Morning (the prologue) 8.87 MB, Treetop Canopy 11.59 MB, The Festival 11.09 MB; first load 3.17 MB.
+
+### What the checks found
+
+- **The Keeper gave his Level 3 news from 36 steps away.** He was still standing at the level's exit. He now walks into the arena to give it.
+- **Skipping Renee's scene left her standing in the doorway.** Where she ends up is now set whether the scene is watched or skipped.
+- **The check's own wait was wrong.** It ended as soon as it began, then skipped the prologue. Fixed in the check; the prologue was not at fault.
+
+### Choices the plan did not specify (Stage 4)
+
+- **Renee is a simple stand-in**, as the plan allows: no model in the repository fits her, so she is a plain figure in a violet gown with a pale head. A proper model is for the family to choose.
+- "Renee sends word" is shown as her owl flying down to the Keeper, using the owl model already in the repository.
+- The story draft gives Renee no words at the castle door, so she has none there. She waves (a sparkle and a soft chime) and leads the way.
+- The castle door is a plain stone doorway until Level 6 itself is built.
+- The "gifts" are a glow and a chime on each of the family as the Keeper names them. All four gifts work from the first level in any case; nothing is locked.
+- No little dragons are beside the family in the prologue, whatever the save says: no egg has hatched yet.
+- The prologue plays once for each save and cannot be watched again from the map.
+- The prologue is place 0 and the festival place 7 in the same list as the six levels, so loading, music and memory are handled the same way for them.
+- The end screen shows at most 18 lanterns, one for each gold berry there is.
+
 ## Done ahead of their stage, because they do not wait on the playtest
 
 The plan says to carry on with every milestone that does not depend on a pause. Stage 5 waits for Joshua's playtest of Level 2 (3.4). These two do not.
