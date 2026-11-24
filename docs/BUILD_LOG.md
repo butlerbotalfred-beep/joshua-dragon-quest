@@ -87,3 +87,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test` — selected difficulty on Title screen, verified saved to localStorage, cycled difficulty from Pause menu, verified idle bot beside a guardian on Easy never loses over 5 minutes (300s), and verified idle bot on Hard is defeated in 5.8s (< 30s).
 - **Result:** PASS (7 passed, 0 failed)
 - **Choices:** Centralized difficulty presets and core tuning constants in `src/config.js`; updated title to "The Royal Dragon Rescue" per `STORY.md`. On Easy, knocked-down heroes bounce back up automatically after 1.8s and never trigger Game Over.
+
+### 2.2 Controller
+- **Started:** 2026-11-24T16:21:30Z
+- **Finished:** 2026-11-24T16:22:45Z
+- **Checks:** `npm test stage2` — bot navigated Title screen, picked Medium difficulty, launched game, entered Level 1, moved forward with Left Stick, attacked with X, jumped with A, swapped hero with Y, paused with Start, cycled difficulty to Hard in Pause menu, and resumed with B using ONLY Xbox controller inputs.
+- **Result:** PASS (2 passed, 0 failed in stage2)
+- **Choices:** Added unified gamepad menu focus manager (`.gp-focus` golden ring) covering Title, Level Select, Pause, Story, and Game Over overlays with D-Pad/Left Stick navigation, A confirm, B back/resume, and Start quick action.

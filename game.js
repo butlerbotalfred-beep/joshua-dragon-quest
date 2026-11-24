@@ -925,6 +925,10 @@ class DragonQuestGame {
     this.p2Hero = 1;
     this.gamepadPrevButtons = [{}, {}];
     this.gamepadAxes = [new THREE.Vector2(), new THREE.Vector2()];
+    this.menuFocusIdx = 0;
+    this.menuFocusScreen = null;
+    this.menuNavCd = 0;
+    this.gamepadPrevNavDir = { x: 0, y: 0 };
 
     this.worldGroup = new THREE.Group();
     this.scene.add(this.worldGroup);
@@ -3197,16 +3201,126 @@ class DragonQuestGame {
   // ============================================================================
   // MAIN SIMULATION LOOP + GAMEPADS + MOVING PLATFORMS + PUZZLES + DANGER ZONES
   // ============================================================================
-  pollGamepads() {
+  getActiveMenuOverlay() {
+    const ids = ['level-select-screen', 'pause-overlay', 'gameover-overlay', 'story-overlay', 'title-screen'];
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el && !el.classList.contains('hidden')) return el;
+    }
+    return null;
+  }
+
+  getFocusableButtons(overlay) {
+    if (!overlay) return [];
+    return Array.from(overlay.querySelectorAll('button')).filter(
+      (b) => !b.classList.contains('hidden') && !b.disabled && b.offsetParent !== null
+    );
+  }
+
+  applyMenuFocus(overlay, idx) {
+    document.querySelectorAll('.gp-focus').forEach((el) => el.classList.remove('gp-focus'));
+    const buttons = this.getFocusableButtons(overlay);
+    if (buttons.length === 0) return null;
+    const clamped = ((idx % buttons.length) + buttons.length) % buttons.length;
+    this.menuFocusIdx = clamped;
+    this.menuFocusScreen = overlay.id;
+    const btn = buttons[clamped];
+    btn.classList.add('gp-focus');
+    return btn;
+  }
+
+  handleGamepadMenuNav(gp, justPressed, dt) {
+    const overlay = this.getActiveMenuOverlay();
+    if (!overlay) {
+      if (this.menuFocusScreen) {
+        document.querySelectorAll('.gp-focus').forEach((el) => el.classList.remove('gp-focus'));
+        this.menuFocusScreen = null;
+      }
+      return false;
+    }
+
+    const buttons = this.getFocusableButtons(overlay);
+    if (buttons.length === 0) return true;
+
+    if (this.menuFocusScreen !== overlay.id || this.menuFocusIdx >= buttons.length) {
+      this.menuFocusIdx = 0;
+      this.applyMenuFocus(overlay, 0);
+    } else if (!buttons[this.menuFocusIdx]?.classList.contains('gp-focus')) {
+      this.applyMenuFocus(overlay, this.menuFocusIdx);
+    }
+
+    if (this.menuNavCd > 0) this.menuNavCd = Math.max(0, this.menuNavCd - dt);
+
+    let navX = 0;
+    let navY = 0;
+    if (gp.buttons[14]?.pressed || (gp.axes[0] || 0) < -0.55) navX = -1;
+    else if (gp.buttons[15]?.pressed || (gp.axes[0] || 0) > 0.55) navX = 1;
+    if (gp.buttons[12]?.pressed || (gp.axes[1] || 0) < -0.55) navY = -1;
+    else if (gp.buttons[13]?.pressed || (gp.axes[1] || 0) > 0.55) navY = 1;
+
+    const dirChanged = navX !== this.gamepadPrevNavDir.x || navY !== this.gamepadPrevNavDir.y;
+    this.gamepadPrevNavDir.x = navX;
+    this.gamepadPrevNavDir.y = navY;
+
+    if ((navX !== 0 || navY !== 0) && (dirChanged || this.menuNavCd <= 0)) {
+      const delta = navX !== 0 ? navX : navY;
+      this.applyMenuFocus(overlay, this.menuFocusIdx + delta);
+      this.menuNavCd = 0.22;
+    }
+
+    if (justPressed(0)) { // A -> Confirm focused button
+      const target = buttons[this.menuFocusIdx] || buttons[0];
+      if (target) target.click();
+      return true;
+    }
+
+    if (justPressed(1)) { // B -> Back / Resume
+      if (overlay.id === 'level-select-screen') {
+        document.getElementById('btn-close-levels')?.click();
+      } else if (overlay.id === 'pause-overlay') {
+        this.togglePause(false);
+      }
+      return true;
+    }
+
+    if (justPressed(9)) { // Start -> Quick Resume / Continue
+      if (overlay.id === 'pause-overlay') this.togglePause(false);
+      else if (overlay.id === 'story-overlay') document.getElementById('btn-story-continue')?.click();
+      else if (overlay.id === 'title-screen') {
+        const target = buttons[this.menuFocusIdx] || document.getElementById('btn-start-story');
+        target?.click();
+      }
+      return true;
+    }
+
+    return true;
+  }
+
+  pollGamepads(dt = 1 / 60) {
     if (!navigator.getGamepads) return;
     const pads = navigator.getGamepads();
     let connectedCount = 0;
+    const menuActive = !!this.getActiveMenuOverlay();
 
     for (let slot = 0; slot < 2; slot++) {
       const gp = pads[slot];
       this.gamepadAxes[slot].set(0, 0);
       if (!gp || !gp.connected) continue;
       connectedCount++;
+
+      const prev = this.gamepadPrevButtons[slot];
+      const justPressed = (idx) => {
+        const cur = !!gp.buttons[idx]?.pressed;
+        const was = !!prev[idx];
+        prev[idx] = cur;
+        return cur && !was;
+      };
+
+      // Menu navigation (Controller 1 drives menus when any overlay is open)
+      if (menuActive) {
+        if (slot === 0) this.handleGamepadMenuNav(gp, justPressed, dt);
+        continue;
+      }
 
       // Auto-enable 2P Co-Op if controller 2 moves or presses any button!
       const ax = Math.abs(gp.axes[0] || 0) > 0.22 ? gp.axes[0] : 0;
@@ -3218,33 +3332,26 @@ class DragonQuestGame {
       if (gp.buttons[13]?.pressed) dy = 1;
       this.gamepadAxes[slot].set(dx, dy);
 
-      const prev = this.gamepadPrevButtons[slot];
-      const justPressed = (idx) => {
-        const cur = !!gp.buttons[idx]?.pressed;
-        const was = !!prev[idx];
-        prev[idx] = cur;
-        return cur && !was;
-      };
-
       const anyPressed = gp.buttons.some((b) => b?.pressed) || Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3;
       if (slot === 1 && anyPressed && !this.isCoop && (this.mode === 'playing' || this.mode === 'festival')) {
         this.isCoop = true;
         if (this.p2Hero === this.p1Hero) this.p2Hero = (this.p1Hero + 1) % 4;
-        this.showAlert('🎮 Controller 2 Joined — 2-Player Local Co-Op Active!', 2.6);
+        this.showAlert('Player 2 joined!', 2.4);
       }
 
       if (justPressed(9)) { // Start button -> Pause / Skip Cutscene
         if (this.mode === 'cutscene') this.finishCutscene();
         else if (this.mode === 'story') document.getElementById('btn-story-continue').click();
         else if (this.mode === 'playing' || this.mode === 'paused' || this.mode === 'festival') this.togglePause();
+        continue;
       }
 
       if (this.mode !== 'playing' && this.mode !== 'festival') continue;
       const hero = this.heroes[slot === 0 ? this.p1Hero : this.p2Hero];
-      if (justPressed(0)) this.heroJump(hero);                           // A / Cross -> Jump
+      if (justPressed(0)) this.heroJump(hero);                             // A -> Jump
       if (justPressed(2) || justPressed(5)) this.heroPrimaryAbility(hero); // X / RB -> Attack
       if (justPressed(1) || justPressed(7)) this.heroSpecialAbility(hero); // B / RT -> Special
-      if (justPressed(3) || justPressed(4)) {                            // Y / LB -> Swap Hero
+      if (justPressed(3) || justPressed(4)) {                              // Y / LB -> Swap Hero
         if (this.isCoop) this.cycleCoopHero(slot + 1);
         else {
           for (let step = 1; step <= 4; step++) {
@@ -3253,8 +3360,8 @@ class DragonQuestGame {
           }
         }
       }
-      if (justPressed(6)) this.useRedBerry();                            // LT -> Red Berry
-      if (justPressed(8)) this.useGreenBerry();                          // Select -> Green Berry
+      if (justPressed(6)) this.useRedBerry();                              // LT -> Red Berry
+      if (justPressed(8)) this.useGreenBerry();                            // View -> Green Berry
     }
 
     const gpPill = document.getElementById('gamepad-pill');
@@ -3411,7 +3518,7 @@ class DragonQuestGame {
 
   update(dt) {
     this.simTime += dt;
-    this.pollGamepads();
+    this.pollGamepads(dt);
     const t = this.simTime;
     if (this.mode === 'cutscene') {
       this.updateCutscene(dt);

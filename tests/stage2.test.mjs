@@ -79,5 +79,102 @@ export async function runStage2Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 2.2: Whole game, menus included, works from an Xbox controller alone
+  {
+    const name = '2.2: Full game flow (pick difficulty, start, move, attack, swap hero, pause) via controller only';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const res = await page.evaluate(() => {
+        const g = window.game;
+        const tap = (btnIdx, stepsAfter = 2) => {
+          window.__setGamepad(0, { buttons: { [btnIdx]: true } });
+          g.step(1 / 60, 1 / 60, false);
+          window.__setGamepad(0, { buttons: {} });
+          g.step(stepsAfter / 60, 1 / 60, false);
+        };
+
+        // Connect virtual Xbox controller on Title screen
+        window.__setGamepad(0, { buttons: {} });
+        g.step(0.05, 1 / 60, false);
+
+        // Title buttons order (fresh save): 0=diff-easy, 1=diff-medium, 2=diff-hard, 3=mode-1p, 4=mode-2p, 5=btn-start-story, 6=btn-open-levels
+        // Navigate right to Medium (index 1) and press A (button 0)
+        tap(15); // D-pad right -> diff-medium
+        tap(0);  // A -> select Medium
+        const diffPicked = g.difficulty;
+
+        // Navigate to Start New Quest (index 5: right 4 times) and press A
+        tap(15); // diff-hard
+        tap(15); // mode-1p
+        tap(15); // mode-2p
+        tap(15); // btn-start-story
+        tap(0);  // A -> start prologue cutscene
+        const modeAfterStart = g.mode;
+
+        // Skip prologue with Start (button 9) to enter Level 1 gameplay
+        tap(9);
+        const modeInLevel = g.mode;
+        const startZ = g.heroes[g.p1Hero].pos.z;
+
+        // Move forward with Left Stick up (axis[1] = -1) for 1 second
+        window.__setGamepad(0, { axes: [0, -1], buttons: {} });
+        g.step(1.0, 1 / 60, false);
+        window.__setGamepad(0, { axes: [0, 0], buttons: {} });
+        g.step(0.05, 1 / 60, false);
+        const movedZ = g.heroes[g.p1Hero].pos.z;
+
+        // Attack with X (button 2) and Jump with A (button 0)
+        tap(2);
+        const attackCdAfterX = g.heroes[g.p1Hero].attackCd;
+        tap(0);
+        const jumpedVelY = g.heroes[g.p1Hero].vel.y;
+
+        // Swap hero with Y (button 3)
+        const heroBeforeSwap = g.p1Hero;
+        tap(3);
+        const heroAfterSwap = g.p1Hero;
+
+        // Pause with Start (button 9), navigate down to Difficulty and press A, then resume with B (button 1)
+        tap(9);
+        const modePaused = g.mode;
+        tap(13); // D-pad down -> Difficulty button in pause menu
+        tap(0);  // A -> cycle difficulty medium -> hard
+        const diffAfterPause = g.difficulty;
+        tap(1);  // B -> resume
+        const modeResumed = g.mode;
+
+        return {
+          diffPicked,
+          modeAfterStart,
+          modeInLevel,
+          movedDist: startZ - movedZ,
+          attackCdAfterX,
+          jumpedVelY,
+          heroBeforeSwap,
+          heroAfterSwap,
+          modePaused,
+          diffAfterPause,
+          modeResumed,
+        };
+      });
+
+      assert.equal(res.diffPicked, 'medium', 'Controller should select Medium on title');
+      assert.equal(res.modeAfterStart, 'cutscene', 'Controller A on Start New Quest should launch prologue');
+      assert.equal(res.modeInLevel, 'playing', 'Controller Start should enter Level 1');
+      assert.ok(res.movedDist > 4.0, `Controller stick should move hero forward, moved ${res.movedDist}`);
+      assert.ok(res.attackCdAfterX > 0, 'Controller X should trigger primary ability');
+      assert.ok(res.jumpedVelY > 5, 'Controller A should jump');
+      assert.notEqual(res.heroAfterSwap, res.heroBeforeSwap, 'Controller Y should swap active hero');
+      assert.equal(res.modePaused, 'paused', 'Controller Start should open pause menu');
+      assert.equal(res.diffAfterPause, 'hard', 'Controller should change difficulty in pause menu');
+      assert.equal(res.modeResumed, 'playing', 'Controller B should resume game');
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
