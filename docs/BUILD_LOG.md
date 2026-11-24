@@ -331,7 +331,7 @@ The plan says to carry on with every milestone that does not depend on a pause. 
 - Started: 2026-11-24 18:20. Finished: 18:26 (its check passed on its own), and again in the whole-suite run at 18:59.
 - What I built: `docs/recording-script.md`, written by `node tools/recording-script.mjs` from `data/dialogue.json`. One section for each speaker, the family first. Each line has its number, the file name the recording must have, where in the story it is said, the words, and how to say it where the story draft says how. A short "How to record" list is at the top.
 - What I checked: the file is exactly what the tool prints today; every speaker in the game has a section and no one else does; the number of lines under each speaker equals that speaker's lines in `data/dialogue.json` (Joshua 6, Daniel 7, Vanessa 6, Michael 5, Renee 1, the Keeper 48, the Narrator 1, the Great Black Dragon 5; 79 in all); each row's words and file name are the data file's; every named file exists; the four family voices are marked as stand-ins and nobody else is. Result: pass.
-- Choice the plan did not specify: for a grown-up, one recording of their whole list is enough to copy the voice in Fish Audio, so the script says so. Line-by-line recordings work too.
+- Choice the plan did not specify: how to record. Milestone 7.2 copies each voice in Fish Audio and remakes the lines from the copy, and Fish Audio copies best from 10 to 60 seconds of clear speech. Each family list is 15 to 32 seconds, so the script asks each person to read their own list once, in one recording. (Corrected at 19:22: my first wording also offered line-by-line recordings as if the game would play them, which the plan's rule on speech does not allow.)
 
 ### Milestone 6.1 Light first load (for everything built so far)
 
@@ -352,11 +352,21 @@ The plan says to carry on with every milestone that does not depend on a pause. 
 - This milestone is finished for the places that exist today. Its checks run on every place there is, so they will measure the prologue, the festival and Levels 1, 3, 4, 5 and 6 as each arrives. I will write the final numbers here after Stage 5.
 - Choices the plan did not specify: "the shipped folder" means what a player's device is sent: `index.html`, `game.js`, `styles.css`, `src/`, `data/`, `vendor/` and `assets/`. JPEG pictures are saved at ffmpeg quality 3 (near the top of its scale). The old prototype in `tests/archive/prototype/` loaded some of the moved files; it is kept as a record and is not meant to run.
 
+### Milestone 6.3 Smooth (for everything built so far)
+
+- Started: 2026-11-24 19:10. Finished: 19:20.
+- What I built: the check, in `tests/60-small-smooth.test.js`. It slows the browser's processor four times, lets the game run itself in real time as it does for a player, and times every frame. A bot plays at seven spots in Level 2 (the start, each gate, the guardian and the nest); the prologue and the festival are watched from their start.
+- Result with the processor slowed four times: Festival Morning 6.8 ms a frame on average, Treetop Canopy 12.5 ms, The Festival 7.7 ms. Target under 33 ms. Result: pass. The check first proves the slow-down is on (the same sum takes over 2.5 times as long).
+- **What this does and does not measure.** It measures the game's own work for a frame: reading the controller, stepping the world, moving the picture on and handing the drawing to the graphics system. It does not measure how fast a real graphics chip paints the picture. The test browser has no graphics card: it paints in software at about a third of a second a frame however little is asked of it, and the slow-down does not reach that part. So the check also reports what the game asks to be painted, at most 150,000 triangles in 92 draw calls in Level 2, which is light for an iPad. Whether it looks smooth on the family's iPad is on the list of things only a person can check (Stage 8).
+- No change to the game was needed.
+- Like 6.1, this is finished for the places that exist today and its check runs on every place there is.
+
 ## Waiting on Michael
 
 - **3.4 Level 2 playtest (asked 2026-11-24 19:10).** After Joshua has played Level 2, Treetop Canopy, on Easy: did he finish without help, where did he get stuck, and did he ask to play again? Stage 5 (Levels 1, 3, 4, 5 and 6) does not start until this is answered, and what he reports is fixed first. Meanwhile I am doing Stage 4 and the parts of Stages 6 and 7 that do not depend on the answer.
   - How to play it: on the Mac Studio, double-click `Play The Royal Dragon Rescue.command` in `Worlds Beyond/_rdr_play`. It fetches the newest build of this branch, serves it, and opens it in the browser. An iPad on the same Wi-Fi can open `http://Alfreds-Mac-Studio.local:8080` while that window is open. I tested the Mac side (the page, a model and a music file all arrive). I could not test from an iPad.
   - The launcher lives only on that Mac, not in the repository. In the repository, `npm start` now accepts `HOST=0.0.0.0` so that an iPad can reach it; without it nothing changes.
+- **7.2 A recording of each family member (asked 2026-11-24 19:25).** `docs/recording-script.md` is ready. One recording each from Joshua, Daniel, Vanessa and Michael, reading their own list (15 to 32 seconds each), and each person's yes (a parent's, for the boys) to their voice being copied in Fish Audio. Until they arrive the four stand-in voices stay, which Michael has said is fine. Nothing else waits on this.
 - **Lighter copies of the family's models (asked 2026-11-24 19:10).** The plan says to ask before replacing a family asset, and to keep the original and work beside it meanwhile. The game now loads lighter copies of the 36 models (pictures 1024 pixels on a side instead of 2048; 18 MB instead of 160 MB), because Level 2 would otherwise ask an iPad for about 100 MB. Every original is untouched in `originals/3d/`, and a check compares each lighter model with its original. Is that all right? If not, copying `originals/3d/` back over `assets/3d/` restores them exactly, and only milestone 6.1 is affected.
 
 ### Answered or no longer needed

@@ -210,3 +210,92 @@ test('6.1 entering each level downloads 20 MB or less', async () => {
     assert.ok(r.bytes <= LEVEL_MB * MB, `${r.name} downloads ${(r.bytes / MB).toFixed(2)} MB when entered`);
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// 6.3 Smooth
+// ---------------------------------------------------------------------------------------------
+//
+// With the processor slowed four times, the average frame takes under 33 ms in every place.
+//
+// What is timed is the game's own work for a frame: reading the controller, stepping the world,
+// moving the picture on, and handing the drawing to the graphics system. The harness has no
+// graphics card: its browser paints with a software stand-in that takes a few hundred
+// milliseconds a frame however little the game asks of it, and the processor slow-down does not
+// reach it. So the painting itself is measured in what it is asked to do (triangles and draw
+// calls), and how fast a real iPad paints it is for a person to check.
+const FRAME_MS = 33;
+
+test('6.3 with the processor slowed four times, a frame of the game\'s own work averages under 33 ms in every place', async () => {
+  // A small window, so the software painter keeps up and more frames are measured. The game's own work is the same at any size.
+  const g = await openReady({ viewport: { width: 480, height: 270 } });
+  try {
+    const cdp = await g.context.newCDPSession(g.page);
+    const busy = () => g.page.evaluate(() => { const a = performance.now(); let x = 0; for (let i = 0; i < 3e7; i++) x += i % 7; return performance.now() - a + (x & 0); });
+    const plain = Math.min(await busy(), await busy(), await busy());
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const slowed = Math.min(await busy(), await busy(), await busy());
+    assert.ok(slowed > plain * 2.5, `the processor was not slowed: the same sum took ${plain.toFixed(0)} ms and then ${slowed.toFixed(0)} ms`);
+
+    const rows = await g.page.evaluate(async () => {
+      const K = await import('/tests/harness/pagekit.js');
+      const game = window.game;
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const out = [];
+      for (const n of Object.keys(K.LEVELS).map(Number).sort((a, b) => a - b)) {
+        const def = K.LEVELS[n];
+        await game.startLevel(n, { difficulty: 'easy', p1Hero: 0 });
+        await K.loaded();
+        const w = game.world;
+        // Where to measure: a scene is watched from its start; a level at its start, each gate, the guardian and the nest.
+        const spots = [{ name: 'start', z: null }];
+        if (!def.sceneOnly) {
+          for (let i = 0; i < 5 && game.state === 'cutscene'; i++) K.tap(K.BUTTON.START);
+          for (const gate of w.gates) spots.push({ name: gate.id, z: w.holdZ(gate) + 2 });
+          if (w.L.arena) spots.push({ name: 'guardian', z: w.L.arena.z1 - 9 });
+          if (w.L.egg) spots.push({ name: 'nest', z: w.L.egg.z + 9 });
+        }
+        const work = [];
+        let triangles = 0, calls = 0;
+        const frame = game.frame.bind(game);
+        let measuring = false;
+        game.frame = (now) => {
+          const a = performance.now();
+          frame(now);
+          if (!measuring) return;
+          work.push(performance.now() - a);
+          const info = game.view.renderer.info.render;
+          triangles = Math.max(triangles, info.triangles); calls = Math.max(calls, info.calls);
+        };
+        game.manualStepping = false;                    // the game runs itself, in real time, as it does for a player
+        for (const s of spots) {
+          if (s.z !== null) K.placeAt(w, s.z);
+          const bot = new K.Bot(w, {});
+          game.botHook = def.sceneOnly ? null : () => K.drive(0, bot.think(1 / 60));
+          measuring = false;
+          await wait(600);                              // the first frames at a new spot set up what is newly in view
+          measuring = true;
+          await wait(def.sceneOnly ? 9000 : 2200);
+        }
+        measuring = false;
+        game.frame = frame; game.botHook = null;
+        window.__pads.release(0);
+        const sum = work.reduce((a, b) => a + b, 0);
+        out.push({ n, name: def.name || def.key, spots: spots.length, frames: work.length, average: sum / Math.max(1, work.length), worst: Math.max(...work), triangles, calls });
+      }
+      game.manualStepping = true;
+      game.toTitle();
+      return out;
+    });
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    for (const r of rows) console.log(`6.3 ${r.name}: ${r.average.toFixed(1)} ms a frame on average with the processor slowed four times (worst ${r.worst.toFixed(0)} ms, ${r.frames} frames at ${r.spots} ${r.spots === 1 ? 'spot' : 'spots'}); at most ${r.triangles} triangles in ${r.calls} draw calls`);
+    assert.ok(rows.length >= 1);
+    for (const r of rows) {
+      assert.ok(r.frames >= 20, `${r.name}: only ${r.frames} frames were measured`);
+      assert.ok(r.triangles > 1000, `${r.name}: nothing was being drawn`);
+      assert.ok(r.average < FRAME_MS, `${r.name}: a frame takes ${r.average.toFixed(1)} ms on average`);
+    }
+    assert.deepStrictEqual(g.errors, []);
+  } finally {
+    await g.close();
+  }
+});

@@ -18,11 +18,13 @@ There are **79 lines** for 8 speakers.
 ## How to record
 
 - The four family voices (Joshua, Daniel, Vanessa and Michael) are stand-ins today. Everyone else already has their voice.
-- A quiet room, the phone or microphone a hand's width from the mouth, no music or television behind.
-- One file for each line, named exactly as in the "File name" column. Any common sound format is fine (m4a, wav or mp3): keep the name and change only the ending.
-- Say the line the way it would be said to a six-year-old: clear, warm, not rushed. Leave a breath of quiet before and after.
-- For a grown-up whose voice will be copied in Fish Audio instead of recorded line by line, reading that person's whole list once in a single recording is enough. The game's files are then made from the copied voice under the same file names.
-- When recordings arrive they are trimmed and set to the same loudness as the rest by `node tools/make-audio.mjs`.
+- **One recording for each person is enough.** Read your own list below aloud, once, in one go. Fish Audio copies a voice best from 10 to 60 seconds of clear speech by one speaker, and each of the four family lists is that long (15 to 32 seconds).
+- The voice is then copied in Fish Audio, and each of that person's lines is made from the copy and saved under the name in the "File name" column. All speech in the game is made with Fish Audio, so the recording itself is the sample, not the sound the game plays.
+- A quiet room, the phone or microphone a hand's width from the mouth, no music or television behind, and nobody else talking. For Joshua, a grown-up can whisper each line for him to say back; only his voice should be loud enough to hear.
+- Say the lines the way they would be said to a six-year-old: clear, warm, not rushed, with a breath of quiet between them.
+- Any common sound format is fine (m4a, wav or mp3). Name the file after the person, for example `joshua.m4a`.
+- Each person (a parent, for the boys) needs to say yes to their voice being copied. Fish Audio may also ask the speaker to read one short sentence to confirm the voice is theirs.
+- The finished lines are trimmed and set to the same loudness as the rest by `node tools/make-audio.mjs`.
 
 ## Joshua
 
