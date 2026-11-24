@@ -939,6 +939,7 @@ class DragonQuestGame {
     this.bushes = [];
     this.goldBerries = [];
     this.obstacles = [];
+    this.gates = [];
     this.chasmZones = [];
     this.slopeZones = [];
     this.platforms = [];
@@ -1880,6 +1881,7 @@ class DragonQuestGame {
     this.bushes = [];
     this.goldBerries = [];
     this.obstacles = [];
+    this.gates = [];
     this.chasmZones = [];
     this.slopeZones = [];
     this.platforms = [];
@@ -1935,6 +1937,119 @@ class DragonQuestGame {
     }
   }
 
+  getCorridorXBounds(z) {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    const padZ = 1.2;
+    for (const p of this.platforms) {
+      if (z >= p.minZ - padZ && z <= p.maxZ + padZ) {
+        if (p.minX < minX) minX = p.minX;
+        if (p.maxX > maxX) maxX = p.maxX;
+      }
+    }
+    for (const s of this.slopeZones) {
+      if (z >= s.minZ - padZ && z <= s.maxZ + padZ) {
+        if (s.minX < minX) minX = s.minX;
+        if (s.maxX > maxX) maxX = s.maxX;
+      }
+    }
+    for (const cz of this.chasmZones) {
+      if (z >= cz.z - cz.d / 2 - padZ && z <= cz.z + cz.d / 2 + padZ) {
+        if (cz.x - cz.w / 2 < minX) minX = cz.x - cz.w / 2;
+        if (cz.x + cz.w / 2 > maxX) maxX = cz.x + cz.w / 2;
+      }
+    }
+    if (!Number.isFinite(minX) || !Number.isFinite(maxX)) {
+      return { minX: -11.5, maxX: 11.5 };
+    }
+    const wallInset = 0.8;
+    return { minX: minX + wallInset, maxX: maxX - wallInset };
+  }
+
+  addGate(cfg) {
+    const gate = {
+      id: cfg.id || `gate_${this.gates.length}`,
+      type: cfg.type,
+      z: cfg.z,
+      blockZ: cfg.blockZ !== undefined ? cfg.blockZ : cfg.z + (cfg.halfDepth || 1.8),
+      minX: cfg.minX !== undefined ? cfg.minX : -50,
+      maxX: cfg.maxX !== undefined ? cfg.maxX : 50,
+      requiredHeroIdx: cfg.requiredHeroIdx,
+      requiresDragon: !!cfg.requiresDragon,
+      hintText: cfg.hintText || 'Try another family member!',
+      hintDialogueId: cfg.hintDialogueId || null,
+      opened: false,
+      meshes: cfg.meshes || [],
+      obstacles: cfg.obstacles || [],
+      chasmZone: cfg.chasmZone || null,
+      slopeZone: cfg.slopeZone || null,
+      onOpen: cfg.onOpen || null,
+    };
+    this.gates.push(gate);
+    return gate;
+  }
+
+  openGate(gate, alertMsg = null) {
+    if (!gate || gate.opened) return;
+    gate.opened = true;
+    gate.meshes.forEach((m) => { if (m) m.visible = false; });
+    gate.obstacles.forEach((ob) => {
+      ob.active = false;
+      if (ob.mesh) ob.mesh.visible = false;
+    });
+    if (typeof gate.onOpen === 'function') gate.onOpen(gate);
+    this.lastProgressTime = this.simTime;
+    if (alertMsg) this.showAlert(alertMsg, 2.4);
+  }
+
+  isHeroPlayerControlled(hero) {
+    if (!hero) return false;
+    return hero.index === this.p1Hero || (this.isCoop && hero.index === this.p2Hero);
+  }
+
+  tryOpenNearbyGateByHeroAction(hero, actionKind, originPos, range = 5.5) {
+    if (!this.isHeroPlayerControlled(hero)) return false;
+    // Only allow interacting with the closest unopened gate ahead of the hero (never through an earlier closed gate!)
+    const closedAhead = this.gates
+      .filter((gt) => !gt.opened && hero.pos.z >= gt.z - 2.0)
+      .sort((a, b) => b.z - a.z);
+    if (closedAhead.length === 0) return false;
+    const gate = closedAhead[0];
+
+    const nearGate = Math.abs(originPos.z - gate.z) <= range
+      || Math.abs(hero.pos.z - gate.blockZ) <= range
+      || (gate.chasmZone && Math.abs(hero.pos.z - (gate.chasmZone.z + gate.chasmZone.d / 2)) <= Math.min(range, 6.0));
+    if (!nearGate) return false;
+
+    if (hero.index !== gate.requiredHeroIdx) {
+      if (Math.abs(hero.pos.z - gate.blockZ) < 3.6) {
+        this.showAlert(gate.hintText, 2.0);
+      }
+      return false;
+    }
+    if (gate.requiresDragon && !this.bondedDragons[hero.index]) {
+      this.showAlert(gate.hintText, 2.2);
+      return false;
+    }
+
+    const okFire = (gate.type === 'bramble' || gate.type === 'overgrowth' || gate.type === 'dark_tunnel' || gate.type === 'lamps_door')
+      && (actionKind === 'fire' || actionKind === 'inferno');
+    const okInferno = gate.type === 'ice_barrier' && actionKind === 'inferno';
+    const okStrength = (gate.type === 'boulder' || gate.type === 'snowdrift' || gate.type === 'heavy_block' || gate.type === 'bridge_hold')
+      && (actionKind === 'strength' || actionKind === 'titan');
+    const okTitan = gate.type === 'obsidian_gate' && actionKind === 'titan';
+    const okIce = (gate.type === 'water_freeze' || gate.type === 'waterfall_freeze' || gate.type === 'magma_vent' || gate.type === 'storm_calm')
+      && (actionKind === 'ice' || actionKind === 'glacial' || actionKind === 'ice_bridge');
+    const okSpeed = (gate.type === 'speed_leap' || gate.type === 'steep_slope' || gate.type === 'thin_ice_key' || gate.type === 'closing_door')
+      && (actionKind === 'wind' || actionKind === 'speed');
+
+    if (okFire || okInferno || okStrength || okTitan || okIce || okSpeed) {
+      this.openGate(gate);
+      return true;
+    }
+    return false;
+  }
+
   addGroundSegment(x, z, w, d, biome, y = 0) {
     const tex = this.textures.getBiomeGround(biome).clone();
     tex.needsUpdate = true;
@@ -1950,8 +2065,36 @@ class DragonQuestGame {
     return mesh;
   }
 
-  addChasmZone(x, z, w, d, hazardType = 'water') {
+  freezeChasmBridge(cz, width = 12) {
+    if (!cz || cz.frozen) return false;
+    cz.frozen = true;
+    const bridgeW = Math.max(width, Math.min(cz.w, 14));
+    const bridge = new THREE.Mesh(
+      new THREE.BoxGeometry(bridgeW, 0.55, cz.d + 1.8),
+      new THREE.MeshStandardMaterial({
+        color: 0xa6f0ff, emissive: 0x29b6f6, emissiveIntensity: 0.48, roughness: 0.12, transparent: true, opacity: 0.92,
+      })
+    );
+    bridge.position.set(cz.x, (cz.y || 0) - 0.22, cz.z);
+    bridge.receiveShadow = true;
+    this.worldGroup.add(bridge);
+    cz.bridgeMesh = bridge;
+    this.platforms.push({
+      minX: cz.x - bridgeW / 2,
+      maxX: cz.x + bridgeW / 2,
+      minZ: cz.z - cz.d / 2 - 0.9,
+      maxZ: cz.z + cz.d / 2 + 0.9,
+      topY: cz.y || 0,
+    });
+    this.spawnParticles(new THREE.Vector3(cz.x, (cz.y || 0) + 0.5, cz.z), 0x80e8ff, 30);
+    this.spawnFloatingText(new THREE.Vector3(cz.x, (cz.y || 0) + 2.0, cz.z), '❄️ ICE BRIDGE!', '#80e8ff');
+    this.audio.sfxBridge();
+    return true;
+  }
+
+  addChasmZone(x, z, w, d, hazardType = 'water', opts = {}) {
     const tex = this.textures.getWaterTexture(hazardType === 'lava' ? 'lava' : 'water');
+    const y = opts.y || 0;
     const mat = new THREE.MeshStandardMaterial({
       map: tex,
       emissive: hazardType === 'lava' ? 0xff3d00 : 0x0b355c,
@@ -1959,10 +2102,31 @@ class DragonQuestGame {
       roughness: 0.18,
     });
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w + 16, 0.8, d), mat);
-    mesh.position.set(x, -1.35, z);
+    mesh.position.set(x, y - 1.35, z);
     this.worldGroup.add(mesh);
-    const zone = { x, z, w, d, hazardType, frozen: false, bridgeMesh: null, liquidMesh: mesh };
+    const zone = {
+      x, z, y, w, d, hazardType, frozen: false, bridgeMesh: null, liquidMesh: mesh,
+      hintText: opts.hintText || null,
+    };
     this.chasmZones.push(zone);
+    if (opts.freezeGate) {
+      this.addGate({
+        id: opts.gateId || `water_gate_${this.gates.length}`,
+        type: opts.gateType || 'water_freeze',
+        z,
+        // Placed on far edge inside the gap: heroes can fall into water, but cannot jump across without freezing!
+        blockZ: z - d / 2 + 0.9,
+        requiredHeroIdx: 2,
+        requiresDragon: !!opts.requiresDragon,
+        hintText: opts.hintText || 'Vanessa can freeze the water!',
+        hintDialogueId: opts.hintDialogueId || null,
+        chasmZone: zone,
+        onOpen: () => {
+          this.freezeChasmBridge(zone);
+          this.showAlert('Vanessa froze an ice bridge!', 2.4);
+        },
+      });
+    }
     return zone;
   }
 
@@ -2251,73 +2415,90 @@ class DragonQuestGame {
     if (cs.onDone) cs.onDone();
   }
 
-  addObstacle(type, x, z, y = 0) {
+  addObstacle(type, x, z, y = 0, opts = {}) {
     const g = new THREE.Group();
     g.position.set(x, y, z);
     let radius = 1.65;
     let label = '';
+    const extraMeshes = [g];
+
+    const addWallFlanks = (color, emissive = 0x000000, height = 3.2) => {
+      const mat = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: emissive ? 0.25 : 0, roughness: 0.85 });
+      for (const sx of [-9.5, 9.5]) {
+        const flank = new THREE.Mesh(new THREE.BoxGeometry(8.5, height, 1.6), mat);
+        flank.position.set(x + sx, y + height / 2, z);
+        flank.castShadow = true;
+        flank.receiveShadow = true;
+        this.worldGroup.add(flank);
+        extraMeshes.push(flank);
+      }
+    };
 
     if (type === 'boulder') {
       const src = this.assets.models['heavy_boulder'];
       if (src) {
-        const { wrapper } = this.assets.instantiateNormalized(src, 2.7, false, true);
+        const { wrapper } = this.assets.instantiateNormalized(src, 3.2, false, true);
         g.add(wrapper);
       } else {
-        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5), new THREE.MeshStandardMaterial({ color: 0x7e838c, roughness: 0.9 }));
-        m.position.y = 1.25;
+        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(1.7), new THREE.MeshStandardMaterial({ color: 0x7e838c, roughness: 0.9 }));
+        m.position.y = 1.4;
         m.castShadow = true;
         g.add(m);
       }
-      label = 'King Michael [4] Smash!';
+      if (opts.spanGate !== false) addWallFlanks(0x636870, 0x000000, 3.0);
+      label = 'Michael can move this boulder!';
     } else if (type === 'bramble') {
       const src = this.assets.models['thorn_bramble'];
       if (src) {
-        const { wrapper } = this.assets.instantiateByWidth(src, 6.2);
+        const { wrapper } = this.assets.instantiateByWidth(src, 8.0);
         wrapper.rotation.y = Math.PI / 2;
         g.add(wrapper);
       } else {
         const mat = new THREE.MeshStandardMaterial({ color: 0x4d3423, roughness: 0.9 });
-        for (let i = -2; i <= 2; i++) {
-          const b = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95), mat);
-          b.position.set(i * 1.15, 0.95, 0);
+        for (let i = -3; i <= 3; i++) {
+          const b = new THREE.Mesh(new THREE.DodecahedronGeometry(1.05), mat);
+          b.position.set(i * 1.15, 1.0, 0);
           g.add(b);
         }
       }
-      radius = 2.6;
-      label = 'Prince Daniel [2] Fireball!';
+      if (opts.spanGate !== false) addWallFlanks(0x3a4d2c, 0x000000, 3.1);
+      radius = 2.8;
+      label = 'Daniel can burn these thorns!';
     } else if (type === 'ice_barrier') {
       const src = this.assets.models['ice_barrier'];
       if (src) {
-        const { wrapper } = this.assets.instantiateByWidth(src, 7.6);
+        const { wrapper } = this.assets.instantiateByWidth(src, 8.6);
         g.add(wrapper);
       } else {
         const mat = new THREE.MeshStandardMaterial({
           color: 0x8be6ff, emissive: 0x1e88e5, emissiveIntensity: 0.35, transparent: true, opacity: 0.86, roughness: 0.12,
         });
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(7.2, 3.6, 1.5), mat);
-        wall.position.y = 1.8;
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(8.2, 3.8, 1.6), mat);
+        wall.position.y = 1.9;
         wall.castShadow = true;
         g.add(wall);
       }
+      if (opts.spanGate !== false) addWallFlanks(0x74d4f7, 0x1565c0, 3.6);
       radius = 3.4;
-      label = 'Daniel + Ember Inferno Blast!';
+      label = 'Daniel and Ember melt this ice!';
     } else if (type === 'obsidian_gate') {
       const src = this.assets.models['obsidian_gate'];
       if (src) {
-        const { wrapper } = this.assets.instantiateByWidth(src, 7.8);
+        const { wrapper } = this.assets.instantiateByWidth(src, 8.6);
         g.add(wrapper);
       } else {
         const mat = new THREE.MeshStandardMaterial({ color: 0x251a30, metalness: 0.4, roughness: 0.5 });
         const glow = new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x7e22ce, emissiveIntensity: 0.85 });
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(7.4, 4.0, 1.6), mat);
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(8.4, 4.0, 1.6), mat);
         wall.position.y = 2.0;
         wall.castShadow = true;
         const rune = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), glow);
         rune.position.set(0, 2.2, 0.9);
         g.add(wall, rune);
       }
+      if (opts.spanGate !== false) addWallFlanks(0x281e36, 0x4c1d95, 3.8);
       radius = 3.4;
-      label = 'Michael + Samson Titan Strength!';
+      label = 'Michael and Samson open this gate!';
     } else if (type === 'magma_vent') {
       const rim = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.45, 0.7, 10), new THREE.MeshStandardMaterial({ color: 0x3a2420, roughness: 0.9 }));
       rim.position.y = 0.35;
@@ -2329,11 +2510,56 @@ class DragonQuestGame {
       g.add(rim, flame);
       g.userData.flame = flame;
       radius = 1.6;
-      label = 'Vanessa [3] Ice Blast cools vent!';
+      label = 'Vanessa can cool these vents!';
     }
 
     this.worldGroup.add(g);
-    this.obstacles.push({ type, mesh: g, pos: new THREE.Vector3(x, y, z), radius, active: true, cooledTimer: 0, label });
+    const ob = { type, mesh: g, pos: new THREE.Vector3(x, y, z), radius, active: true, cooledTimer: 0, label };
+    this.obstacles.push(ob);
+
+    if (opts.spanGate !== false) {
+      const gateMap = {
+        bramble: { requiredHeroIdx: 1, requiresDragon: false, hintText: opts.hintText || 'Daniel can burn the brambles!' },
+        boulder: { requiredHeroIdx: 3, requiresDragon: false, hintText: opts.hintText || 'Michael can move the boulder!' },
+        ice_barrier: { requiredHeroIdx: 1, requiresDragon: true, hintText: opts.hintText || 'Ask Daniel and Ember to melt it!' },
+        obsidian_gate: { requiredHeroIdx: 3, requiresDragon: true, hintText: opts.hintText || 'Michael and Samson can open it!' },
+        magma_vent: { requiredHeroIdx: 2, requiresDragon: false, hintText: opts.hintText || 'Vanessa can cool the vents!' },
+      };
+      const cfg = gateMap[type];
+      if (cfg) {
+        const existingSameZ = type === 'magma_vent'
+          ? this.gates.find((gt) => gt.type === 'magma_vent' && Math.abs(gt.z - z) < 2.0)
+          : null;
+        if (existingSameZ) {
+          existingSameZ.obstacles.push(ob);
+          existingSameZ.meshes.push(...extraMeshes);
+        } else {
+          this.addGate({
+            id: opts.gateId || `${type}_gate_${this.gates.length}`,
+            type,
+            z,
+            blockZ: z + 2.0,
+            requiredHeroIdx: cfg.requiredHeroIdx,
+            requiresDragon: cfg.requiresDragon,
+            hintText: cfg.hintText,
+            hintDialogueId: opts.hintDialogueId || null,
+            meshes: type === 'magma_vent' ? [] : extraMeshes,
+            obstacles: [ob],
+            onOpen: (gate) => {
+              this.spawnParticles(new THREE.Vector3(x, y + 1.4, z), 0xffd54f, 26);
+              if (type === 'magma_vent') {
+                gate.obstacles.forEach((o) => {
+                  o.cooledTimer = 9999;
+                  o.active = false;
+                  if (o.mesh.userData.flame) o.mesh.userData.flame.visible = false;
+                });
+              }
+            },
+          });
+        }
+      }
+    }
+    return ob;
   }
 
   addSpiderWeb(x, z, y = 0) {
@@ -2478,7 +2704,7 @@ class DragonQuestGame {
       // LEVEL 1: THE GREAT WOODS (Branching Gold Alcove + Pushable Switch Puzzle!)
       this.addGroundSegment(0, -14, 26, 52, def.biome, 0);
       this.addGroundSegment(16, -24, 12, 14, def.biome, 0); // Secret East Glade Alcove!
-      this.addChasmZone(0, -43, 26, 6, 'water');
+      this.addChasmZone(0, -43, 26, 6, 'water', { freezeGate: true, requiresDragon: false, hintText: 'Vanessa can freeze the stream!' });
       this.addGroundSegment(0, -68, 28, 44, def.biome, 0);
 
       const trees = [];
@@ -2581,7 +2807,7 @@ class DragonQuestGame {
       // LEVEL 4: FROSTPEAK RIDGE
       this.addGroundSegment(0, -14, 24, 48, def.biome, 0);
       this.addGroundSegment(-15, -24, 10, 12, def.biome, 0); // Frozen Side Ridge!
-      this.addChasmZone(0, -42, 24, 8, 'water');
+      this.addChasmZone(0, -42, 24, 8, 'water', { freezeGate: true, requiresDragon: false, hintText: 'Vanessa can freeze the river!' });
       this.addGroundSegment(0, -68, 26, 44, def.biome, 0);
 
       const trees = [];
@@ -2610,7 +2836,7 @@ class DragonQuestGame {
     } else if (idx === 4) {
       // LEVEL 5: THE CRAGLANDS (Pushable Rune Switch + Ice Bridge + Steep Ramp!)
       this.addGroundSegment(0, -8, 24, 36, def.biome, 0);
-      this.addChasmZone(0, -32, 24, 12, 'water');
+      this.addChasmZone(0, -32, 24, 12, 'water', { freezeGate: true, requiresDragon: true, hintText: 'Vanessa and Frosty can bridge it!' });
       this.addGroundSegment(0, -52, 24, 28, def.biome, 0);
       this.addSteepSlope(0, -70, 10, 8, 0, 2.5);
       this.addGroundSegment(0, -86, 28, 26, def.biome, 2.5);
@@ -2643,7 +2869,7 @@ class DragonQuestGame {
       // Tier 2: Obsidian Vault (y = 0.0)
       this.addGroundSegment(0, -18, 24, 14, def.biome, 0.0);
       this.addObstacle('obsidian_gate', 0, -16, 0.0);
-      this.addChasmZone(0, -31, 24, 12, 'water'); // Subterranean River for Vanessa + Frosty!
+      this.addChasmZone(0, -31, 24, 12, 'water', { freezeGate: true, requiresDragon: true, hintText: 'Vanessa and Frosty can bridge it!' }); // Subterranean River for Vanessa + Frosty!
       // Tier 3: Ice Seal Chamber (y = 0.0) -> Descending Ramp to Deep Under-Cavern (y = -2.0)!
       this.addGroundSegment(0, -50, 24, 26, def.biome, 0.0);
       this.addObstacle('ice_barrier', 0, -47, 0.0);
@@ -2929,16 +3155,20 @@ class DragonQuestGame {
       this.spawnSlashVfx(strikePos, hero.facing, 0x39e58c, bonded ? 3.2 : 2.3);
       this.spawnParticles(strikePos.clone().add(new THREE.Vector3(0, 0.9, 0)), 0x39e58c, 16);
       this.dealAreaDamage(strikePos, bonded ? 3.5 : 2.8, bonded ? 34 : 22, 'wind');
+      this.tryOpenNearbyGateByHeroAction(hero, 'wind', strikePos, 7.0);
     } else if (hero.index === 1) {
       // PRINCE DANIEL: Fireball / Inferno Blast (or zero-magic Flame Swipe if low on magic!)
       const cost = bonded ? 15 : 10;
       hero.attackCd = 0.36;
+      const fireKind = bonded ? 'inferno' : 'fire';
       if (this.magic >= cost) {
         this.magic -= cost;
         bonded ? this.audio.sfxInferno() : this.audio.sfxFire();
         if (bonded) this.triggerShake(0.28, 0.18);
         this.spawnProjectile({
-          kind: bonded ? 'inferno' : 'fire',
+          kind: fireKind,
+          ownerHeroIdx: hero.index,
+          fromPlayer: this.isHeroPlayerControlled(hero),
           pos: hero.pos.clone().add(new THREE.Vector3(0, 1.15, 0)).addScaledVector(dir, 0.9),
           vel: dir.clone().multiplyScalar(bonded ? 24 : 19),
           radius: bonded ? 1.15 : 0.65,
@@ -2946,6 +3176,7 @@ class DragonQuestGame {
           color: bonded ? 0xff7b00 : 0xff4500,
           life: 2.0,
         });
+        this.tryOpenNearbyGateByHeroAction(hero, fireKind, hero.pos, 7.5);
       } else {
         // Zero-magic Flame Swipe melee fallback so Daniel can ALWAYS fight!
         this.audio.sfxFire();
@@ -2953,16 +3184,20 @@ class DragonQuestGame {
         this.spawnSlashVfx(swipePos, hero.facing, 0xff5722, 2.3);
         this.spawnParticles(swipePos.clone().add(new THREE.Vector3(0, 0.9, 0)), 0xff7043, 12);
         this.dealAreaDamage(swipePos, 2.7, 16, 'fire');
+        this.tryOpenNearbyGateByHeroAction(hero, fireKind, swipePos, 6.0);
       }
     } else if (hero.index === 2) {
       // QUEEN VANESSA: Ice Blast / Glacial Surge (or zero-magic Frost Staff Wave if low on magic!)
       const cost = bonded ? 14 : 10;
       hero.attackCd = 0.38;
+      const iceKind = bonded ? 'glacial' : 'ice';
       if (this.magic >= cost) {
         this.magic -= cost;
         this.audio.sfxIce();
         this.spawnProjectile({
-          kind: bonded ? 'glacial' : 'ice',
+          kind: iceKind,
+          ownerHeroIdx: hero.index,
+          fromPlayer: this.isHeroPlayerControlled(hero),
           pos: hero.pos.clone().add(new THREE.Vector3(0, 1.15, 0)).addScaledVector(dir, 0.9),
           vel: dir.clone().multiplyScalar(20),
           radius: bonded ? 1.2 : 0.72,
@@ -2970,12 +3205,14 @@ class DragonQuestGame {
           color: 0x5ce1ff,
           life: 2.0,
         });
+        this.tryOpenNearbyGateByHeroAction(hero, iceKind, hero.pos, 9.5);
       } else {
         // Zero-magic Frost Wave melee fallback so Vanessa can ALWAYS fight!
         this.audio.sfxIce();
         const wavePos = hero.pos.clone().addScaledVector(dir, 1.6);
         this.spawnShockwaveVfx(wavePos, 0x5ce1ff, 0.7);
         this.dealAreaDamage(wavePos, 2.9, 14, 'ice');
+        this.tryOpenNearbyGateByHeroAction(hero, iceKind, wavePos, 8.5);
       }
     } else if (hero.index === 3) {
       // KING MICHAEL: Heavy Ground Slam / Titan Smash (0 Magic!)
@@ -2986,6 +3223,7 @@ class DragonQuestGame {
       this.spawnShockwaveVfx(hitPos, bonded ? 0xd8b4fe : 0xf5c953, bonded ? 1.0 : 0.75);
       this.spawnParticles(hitPos.clone().add(new THREE.Vector3(0, 0.7, 0)), 0xb76eff, 22);
       this.dealAreaDamage(hitPos, bonded ? 4.4 : 3.3, bonded ? 48 : 30, bonded ? 'titan' : 'strength');
+      this.tryOpenNearbyGateByHeroAction(hero, bonded ? 'titan' : 'strength', hitPos, 6.5);
       this.obstacles.forEach((ob) => {
         if (!ob.active) return;
         if (ob.pos.distanceTo(hitPos) < ob.radius + 2.5) {
@@ -3014,10 +3252,16 @@ class DragonQuestGame {
       hero.sprintBoostTimer = bonded ? 2.4 : 1.1;
       this.audio.sfxSpeed();
       this.spawnParticles(hero.pos.clone().add(new THREE.Vector3(0, 0.8, 0)), 0x39e58c, 16);
+      this.tryOpenNearbyGateByHeroAction(hero, 'speed', hero.pos, 7.0);
       if (bonded) this.spawnFloatingText(hero.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), '⚡ HYPER-SPEED!', '#6effa1');
     } else if (hero.index === 1) {
       this.heroPrimaryAbility(hero);
     } else if (hero.index === 2) {
+      if (this.tryOpenNearbyGateByHeroAction(hero, 'ice_bridge', hero.pos, 10.0)) {
+        this.magic = Math.max(0, this.magic - 10);
+        this.updateHUD();
+        return;
+      }
       if (!bonded) { this.heroPrimaryAbility(hero); return; }
       if (this.magic < 18) { this.showAlert('✨ Need 18 Magic for Ice Bridge!', 1.8); return; }
       let frozeAny = false;
@@ -3775,8 +4019,19 @@ class DragonQuestGame {
       }
 
       h.vel.y -= 32 * dt;
-      const nextX = THREE.MathUtils.clamp(h.pos.x + h.vel.x * dt, -21.5, 22.0);
-      const nextZ = THREE.MathUtils.clamp(h.pos.z + h.vel.z * dt, -106, 14);
+      let nextZ = THREE.MathUtils.clamp(h.pos.z + h.vel.z * dt, this.levelMinZ ?? -260, this.levelMaxZ ?? 20);
+      const xBounds = this.getCorridorXBounds(nextZ);
+      let nextX = THREE.MathUtils.clamp(h.pos.x + h.vel.x * dt, xBounds.minX, xBounds.maxX);
+
+      // Enforce full-span unskippable gates (cannot walk around, jump over, or bypass!)
+      for (const gate of this.gates) {
+        if (gate.opened) continue;
+        if (h.pos.z >= gate.blockZ - 0.18 && nextZ < gate.blockZ && nextX >= gate.minX && nextX <= gate.maxX) {
+          nextZ = gate.blockZ;
+          h.vel.z = Math.max(0, h.vel.z);
+          if (isP1 || isP2) this.showAlert(gate.hintText, 1.8);
+        }
+      }
 
       let blocked = false;
       for (const ob of this.obstacles) {
@@ -3784,8 +4039,8 @@ class DragonQuestGame {
         if (ob.type === 'magma_vent' && ob.cooledTimer > 0) continue;
         if (Math.hypot(nextX - ob.pos.x, nextZ - ob.pos.z) < ob.radius + 0.65) {
           blocked = true;
-          if (ob.type === 'magma_vent' && h.hurtCd <= 0 && h.armorTimer <= 0) this.hurtHero(h, 12);
-          if (isP1 || isP2) this.showAlert(`🚧 Blocked! ${ob.label}`, 1.8);
+          if (ob.type === 'magma_vent' && h.hurtCd <= 0 && h.armorTimer <= 0) this.hurtHero(h, 12, 'hazard');
+          if (isP1 || isP2) this.showAlert(ob.label, 1.8);
           break;
         }
       }
@@ -3969,29 +4224,33 @@ class DragonQuestGame {
         }
       } else {
         this.tryBreakNearbyWebs(p.pos, p.radius + 1.8);
-        for (const ob of this.obstacles) {
-          if (!ob.active) continue;
-          if (ob.pos.distanceTo(p.pos) < ob.radius + p.radius) {
-            if (ob.type === 'bramble' && (p.kind === 'fire' || p.kind === 'inferno')) {
-              ob.active = false; ob.mesh.visible = false;
-              this.spawnParticles(ob.pos.clone().add(new THREE.Vector3(0, 1, 0)), 0xff7043, 26);
-              this.spawnFloatingText(ob.pos.clone().add(new THREE.Vector3(0, 2.0, 0)), '🔥 BURNED!', '#ff9f43');
-              this.showAlert('🔥 Prince Daniel burned away the thorny brambles!');
-              hit = true;
-            } else if (ob.type === 'ice_barrier' && p.kind === 'inferno') {
-              ob.active = false; ob.mesh.visible = false;
-              this.spawnParticles(ob.pos.clone().add(new THREE.Vector3(0, 1.5, 0)), 0x80e8ff, 30);
-              this.spawnFloatingText(ob.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), '🔥 MELTED!', '#80e8ff');
-              this.showAlert('🔥 Daniel & Ember’s Inferno Blast melted the Heavy Ice Barrier!');
-              hit = true;
-            } else if (ob.type === 'ice_barrier' && p.kind === 'fire') {
-              this.showAlert('❄️ Ice Barrier too thick! Needs Daniel + Ember’s Inferno Blast!', 2.0);
-              hit = true;
-            } else if (ob.type === 'magma_vent' && (p.kind === 'ice' || p.kind === 'glacial')) {
-              ob.cooledTimer = 7.5;
-              this.spawnParticles(ob.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0x9cecff, 16);
-              this.spawnFloatingText(ob.pos.clone().add(new THREE.Vector3(0, 2.0, 0)), '❄️ COOLED!', '#80e8ff');
-              hit = true;
+        if (p.fromPlayer !== false) {
+          for (const ob of this.obstacles) {
+            if (!ob.active) continue;
+            if (ob.pos.distanceTo(p.pos) < ob.radius + p.radius + 0.6) {
+              const linkedGate = this.gates.find((gt) => !gt.opened && gt.obstacles.includes(ob));
+              if (ob.type === 'bramble' && (p.kind === 'fire' || p.kind === 'inferno')) {
+                if (linkedGate) this.openGate(linkedGate, 'Daniel burned the brambles!');
+                else { ob.active = false; ob.mesh.visible = false; }
+                this.spawnParticles(ob.pos.clone().add(new THREE.Vector3(0, 1, 0)), 0xff7043, 26);
+                this.spawnFloatingText(ob.pos.clone().add(new THREE.Vector3(0, 2.0, 0)), '🔥 BURNED!', '#ff9f43');
+                hit = true;
+              } else if (ob.type === 'ice_barrier' && p.kind === 'inferno') {
+                if (linkedGate) this.openGate(linkedGate, 'Daniel and Ember melted the ice!');
+                else { ob.active = false; ob.mesh.visible = false; }
+                this.spawnParticles(ob.pos.clone().add(new THREE.Vector3(0, 1.5, 0)), 0x80e8ff, 30);
+                this.spawnFloatingText(ob.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), '🔥 MELTED!', '#80e8ff');
+                hit = true;
+              } else if (ob.type === 'ice_barrier' && p.kind === 'fire') {
+                this.showAlert('Ask Daniel and Ember to melt it!', 2.0);
+                hit = true;
+              } else if (ob.type === 'magma_vent' && (p.kind === 'ice' || p.kind === 'glacial')) {
+                if (linkedGate) this.openGate(linkedGate, 'Vanessa cooled the vents!');
+                else ob.cooledTimer = 7.5;
+                this.spawnParticles(ob.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0x9cecff, 16);
+                this.spawnFloatingText(ob.pos.clone().add(new THREE.Vector3(0, 2.0, 0)), '❄️ COOLED!', '#80e8ff');
+                hit = true;
+              }
             }
           }
         }

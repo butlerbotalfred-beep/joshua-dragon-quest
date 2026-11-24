@@ -176,5 +176,112 @@ export async function runStage2Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 2.3: Solid edges and unskippable gates (3 wrong heroes hug edges/jump 60s -> blocked; right hero opens)
+  {
+    const name = '2.3: Solid corridor edges & gates cannot be bypassed by wrong heroes in 60s, right gift opens them';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const gateReport = await page.evaluate(() => {
+        const g = window.game;
+        g.setDifficulty('easy', false);
+        g.bondedDragons = [true, true, true, true];
+        g.startLevel(0, false); // Level 1 has bramble (Daniel), boulder (Michael), water_freeze (Vanessa)
+        // Clear enemies/webs so we test gate geometry purely
+        g.enemies.forEach((e) => { e.dead = true; e.mesh.visible = false; });
+        g.webs.forEach((w) => { w.active = false; w.mesh.visible = false; });
+
+        const reports = [];
+        const gates = [...g.gates].sort((a, b) => b.z - a.z); // front to back (descending Z)
+
+        for (const gate of gates) {
+          const startZ = gate.z + (gate.chasmZone ? gate.chasmZone.d / 2 + 2.5 : 4.2);
+          const wrongHeroes = [0, 1, 2, 3].filter((idx) => idx !== gate.requiredHeroIdx);
+
+          for (const wrongIdx of wrongHeroes) {
+            g.p1Hero = wrongIdx;
+            const h = g.heroes[wrongIdx];
+            h.pos.set(0, 0, startZ);
+            h.lastSafePos.set(0, 0, startZ);
+            h.vel.set(0, 0, 0);
+            h.onGround = true;
+
+            let minZReached = startZ;
+            // 60 seconds: alternate hugging left edge, center, right edge while moving forward, jumping, and attacking
+            for (let sec = 0; sec < 60; sec++) {
+              const phase = sec % 6;
+              g.keys = {
+                KeyW: true,
+                KeyA: phase === 0 || phase === 1,
+                KeyD: phase === 3 || phase === 4,
+              };
+              if (sec % 2 === 0) g.heroJump(h);
+              if (sec % 3 === 0) g.heroPrimaryAbility(h);
+              if (sec % 5 === 0) g.heroSpecialAbility(h);
+              g.step(1.0, 1 / 60, false);
+              if (h.pos.z < minZReached) minZReached = h.pos.z;
+            }
+            g.keys = {};
+            reports.push({
+              gateId: gate.id,
+              gateType: gate.type,
+              heroIdx: wrongIdx,
+              openedByWrong: gate.opened,
+              bypassed: minZReached < gate.blockZ - 0.5,
+              minZReached: Number(minZReached.toFixed(2)),
+              blockZ: gate.blockZ,
+            });
+          }
+
+          // Now right hero opens the gate and crosses past blockZ!
+          g.p1Hero = gate.requiredHeroIdx;
+          const rh = g.heroes[gate.requiredHeroIdx];
+          rh.pos.set(0, 0, startZ);
+          rh.lastSafePos.set(0, 0, startZ);
+          rh.vel.set(0, 0, 0);
+          rh.facing = Math.PI; // face -Z toward gate
+          g.magic = g.maxMagic;
+          g.heroPrimaryAbility(rh);
+          g.step(0.5, 1 / 60, false);
+          if (!gate.opened) {
+            g.heroSpecialAbility(rh);
+            g.step(0.5, 1 / 60, false);
+          }
+          // Walk forward through the now-opened gate
+          g.keys = { KeyW: true };
+          g.step(2.5, 1 / 60, false);
+          g.keys = {};
+          reports.push({
+            gateId: gate.id,
+            gateType: gate.type,
+            heroIdx: gate.requiredHeroIdx,
+            isRightHero: true,
+            openedByRight: gate.opened,
+            crossedPast: rh.pos.z < gate.blockZ - 1.0,
+            finalZ: Number(rh.pos.z.toFixed(2)),
+            blockZ: gate.blockZ,
+          });
+        }
+        return reports;
+      });
+
+      assert.ok(gateReport.length >= 12, `Expected at least 3 gates x 4 hero checks, got ${gateReport.length}`);
+      for (const r of gateReport) {
+        if (r.isRightHero) {
+          assert.equal(r.openedByRight, true, `Right hero ${r.heroIdx} failed to open gate ${r.gateId}`);
+          assert.equal(r.crossedPast, true, `Right hero ${r.heroIdx} failed to cross opened gate ${r.gateId} (z=${r.finalZ}, blockZ=${r.blockZ})`);
+        } else {
+          assert.equal(r.openedByWrong, false, `Wrong hero ${r.heroIdx} opened gate ${r.gateId}!`);
+          assert.equal(r.bypassed, false, `Wrong hero ${r.heroIdx} bypassed gate ${r.gateId} (minZ=${r.minZReached} < blockZ=${r.blockZ})`);
+        }
+      }
+
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }

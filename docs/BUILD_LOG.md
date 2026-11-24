@@ -94,3 +94,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage2` — bot navigated Title screen, picked Medium difficulty, launched game, entered Level 1, moved forward with Left Stick, attacked with X, jumped with A, swapped hero with Y, paused with Start, cycled difficulty to Hard in Pause menu, and resumed with B using ONLY Xbox controller inputs.
 - **Result:** PASS (2 passed, 0 failed in stage2)
 - **Choices:** Added unified gamepad menu focus manager (`.gp-focus` golden ring) covering Title, Level Select, Pause, Story, and Game Over overlays with D-Pad/Left Stick navigation, A confirm, B back/resume, and Start quick action.
+
+### 2.3 Gates
+- **Started:** 2026-11-24T16:23:35Z
+- **Finished:** 2026-11-24T16:28:35Z
+- **Checks:** `npm test stage2` (plus full stage0+stage1 verification) — for every gate in Level 1 (bramble, boulder, stream), each of the three wrong heroes walked, jumped, hugged both corridor edges, and used abilities for 60 seconds without opening or getting past the gate; the matching hero then opened and crossed each gate cleanly.
+- **Result:** PASS (3 passed, 0 failed in stage2)
+- **Choices:** Added `getCorridorXBounds(z)` solid corridor clamping from platform/slope/chasm geometry, full-span visual gate flanks + `this.gates` barrier enforcement (preventing walking around or jumping over), and nearest-closed-gate gating so abilities cannot open downstream gates through an earlier shut gate.
