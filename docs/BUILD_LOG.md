@@ -64,3 +64,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test` — jumped into every chasm gap in all 6 levels, verified hero returns to `lastSafePos` on the near side (never past the gap), verified lava gaps never show a water-freeze hint, and verified airborne heroes cannot be lifted/teleported onto higher ledges beside steep ramps.
 - **Result:** PASS (4 passed, 0 failed)
 - **Choices:** Track `hero.lastSafePos` only on verified solid, non-moving, non-steep ground with a 0.65-unit edge inset; tighten airborne step-up tolerance to 0.08u so falling heroes collide with cliff walls instead of snapping upward onto far ledges; generate context-aware fall hints (<=8 words) naming the right gift.
+
+### 1.4 Only the player pushes
+- **Started:** 2026-11-24T16:06:58Z
+- **Finished:** 2026-11-24T16:07:42Z
+- **Checks:** `npm test` — played Level 1 as Joshua for 120 seconds near the East Glade rune block while AI Michael moved beside it; verified block moved 0 units, and verified swapping to Michael still pushes the block normally.
+- **Result:** PASS (5 passed, 0 failed)
+- **Choices:** Gated `pushPuzzles` movement on `this.p1Hero === 3 || (this.isCoop && this.p2Hero === 3)` and `!michael.trappedByWeb`.

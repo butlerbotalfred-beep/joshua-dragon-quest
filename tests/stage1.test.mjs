@@ -222,5 +222,50 @@ export async function runStage1Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 1.4: Computer-controlled Michael never moves a push block
+  {
+    const name = '1.4: AI-controlled Michael never moves Level 1 push block over 2 minutes';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const res = await page.evaluate(() => {
+        const g = window.game;
+        g.startLevel(0, false);
+        g.p1Hero = 0; // Joshua
+        const pz = g.pushPuzzles[0];
+        const initX = pz.pos.x;
+        const initZ = pz.pos.z;
+        // Move Joshua near the East Glade block so AI Michael follows right beside/through the block
+        g.heroes[0].pos.set(initX - 1.5, 0, initZ + 1.0);
+        g.heroes[3].pos.set(initX - 0.8, 0, initZ + 0.5);
+
+        // Run 120 seconds of game time as Joshua, circling around the block
+        for (let sec = 0; sec < 120; sec++) {
+          g.keys = sec % 4 === 0 ? { KeyD: true } : sec % 4 === 1 ? { KeyW: true } : sec % 4 === 2 ? { KeyA: true } : { KeyS: true };
+          g.heroes[0].hp = g.heroes[0].maxHp;
+          g.heroes[3].hp = g.heroes[3].maxHp;
+          g.step(1.0, 1 / 60, false);
+        }
+        g.keys = {};
+        const movedDistAI = Math.hypot(pz.pos.x - initX, pz.pos.z - initZ);
+
+        // Now verify player-controlled Michael CAN still push the block
+        g.p1Hero = 3;
+        g.heroes[3].pos.set(pz.pos.x - 1.2, 0, pz.pos.z);
+        g.step(0.5, 1 / 60, false);
+        const movedDistPlayer = Math.hypot(pz.pos.x - initX, pz.pos.z - initZ);
+
+        return { movedDistAI, movedDistPlayer };
+      });
+
+      assert.equal(res.movedDistAI, 0, `AI Michael moved block by ${res.movedDistAI}`);
+      assert.ok(res.movedDistPlayer > 0.5, `Player Michael should be able to push block, moved ${res.movedDistPlayer}`);
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }

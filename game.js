@@ -3224,8 +3224,9 @@ class DragonQuestGame {
     // King Michael Super Strength Pushable Rune Blocks -> Floor Pressure Switches!
     this.pushPuzzles.forEach((pz) => {
       if (pz.solved) return;
+      const isMichaelPlayer = this.p1Hero === 3 || (this.isCoop && this.p2Hero === 3);
       const michael = this.heroes[3];
-      if (michael && !michael.downed && michael.pos.distanceTo(pz.pos) < 2.2) {
+      if (isMichaelPlayer && michael && !michael.downed && !michael.trappedByWeb && michael.pos.distanceTo(pz.pos) < 2.2) {
         const pushDir = pz.pos.clone().sub(michael.pos);
         pushDir.y = 0;
         if (pushDir.lengthSq() > 0.01) {
