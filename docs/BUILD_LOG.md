@@ -208,6 +208,68 @@ The five Stage 1 fixes were made in the prototype. The new game has to pass the 
 - Audio reaches the build by being downloaded on Michael's Mac into `Worlds Beyond/_rdr_audio/` and read from there. Those raw downloads can be deleted once the build is merged. I have not deleted anything.
 - Still to be judged by a person: whether a browser lets sound start from a controller press alone. If it does not, the title screen shows a small "tap" sign and one tap or key press starts the sound.
 
+## Stage 3: Level 2, the Treetop Canopy (milestones 3.1 to 3.3, and the pause at 3.4)
+
+- Started: 2026-11-24 18:00
+- Finished 3.1 to 3.3: 2026-11-24 18:52
+- Time note: the layout file, the level and the hatching were built together, because the file is printed from the level and the level was reshaped until the timing check passed. They share one start and one finish.
+
+### Milestone 3.1 Layout
+
+- What I built: `docs/levels/level-2.md`. It holds the map (a table of every stretch of the level from the start to the nest), the four gates in order with the gift and the Keeper's hint line for each, the berries, the creatures, the guardian's arena, the hatching scene and how long the level takes. The map table is printed from the level's own data by `node tools/level-map.mjs 2 --write`, so the file and the game cannot say different things.
+- The gates are the story draft's: Daniel clears the overgrowth (fire), Michael holds a bridge steady (strength), Vanessa freezes a waterfall into steps (ice), Joshua makes the last long leap to the nest (speed).
+- What I checked: the file exists; the level has exactly those four gates in that order; each gate's hero, gift and hint line (word for word from `data/dialogue.json`) appear in order in the map and again in the gate list; the map in the file is identical to the map printed from the level; the berry counts and the arena size in the file are the level's own; the egg is the green one and Joshua's. Result: pass.
+
+### Milestone 3.2 Playable
+
+- What I built: `src/levels/level2.js`, 718 steps long from the start to the nest. Fourteen berry bushes, three gold berries in side nooks, twelve small creatures, four webs, four small gaps, three moving platforms, two ramps up, the four gates, the Old Vine's arena and the nest.
+- The waterfall is drawn as water tumbling from the high bank across a drop, and it turns pale and still as Vanessa freezes it into steps. The rope bridge swings over a drop.
+- What I checked, all through controller input in the test browser:
+  - **Time on Easy.** The timed bot stands in for a six-year-old on a first play (its rules are below). Three runs: 9.15, 8.93 and 8.94 minutes from the first step to the end of the hatching scene. All four gifts used in every run; each gate opened by its own hero with its own gift; all 12 creatures freed; 3 of 3 gold berries and 14 of 14 bushes found; the Old Vine fight took 60 to 65 seconds; nobody was ever defeated; and something moved forward at least every 45 seconds. Result: pass (target 8 to 12 minutes).
+  - **Medium and Hard.** A quick bot finishes the level on Medium (4.4 minutes) and Hard (4.2 minutes) without needing "Try again". Result: pass.
+  - **Bypass (the 2.3 check on the real level).** For each of the four gates, on Easy and on Hard, each of the three wrong heroes spends 60 seconds walking at it, jumping at it, hugging both edges and using their own gift. None opened a gate or stood on ground past one, and no companion got past. The right hero then opened each (in 1.3 to 7.7 seconds). 4 of 4 gates pass on both difficulties. Result: pass.
+
+### Milestone 3.3 The hatching
+
+- What I built: the egg's glow grows with every step Joshua takes toward it (brighter, larger, and the egg trembles more). The scene is the story draft's: the Keeper's line as the family reaches the nest, then the hatching music, Joshua's promise, the egg hatching, Speedy's chirp and three quick circles around Joshua's head, and Michael's line. Speedy is bonded and saved.
+- What I checked: (a) with Joshua standing 70, 50, 40, 36, 23, 15, 10 and 5 steps from the egg, the glow is the same faint glow from 70 and 50 and then brighter, bigger and more trembling at every step nearer (brightness 0.25 far off, 0.92 close). (b) Starting from an empty save, a bot makes Joshua's leap and walks to the egg. The Keeper's line, the hatching music, Joshua's line, the hatch sound, the chirp and Michael's line happen in that order, each line once, never more than eight words on screen; Speedy comes out of the egg and flies 3 laps around Joshua's head; Speedy is bonded in play and in the save, and nobody else's dragon is. (c) The game is closed and opened again, Level 2 is started, and Speedy is beside Joshua. Result: pass.
+- The Stage 1 check for skipping (1.1) now also runs on this real scene: skipped at every tenth of a second with the Menu button and with the on-screen skip sign, Speedy is bonded every time.
+
+### The bot that is timed
+
+The plan says "the bot finishes on Easy in 8 to 12 minutes". A bot that never hesitates finishes this level in about 4 minutes, which says little about a six-year-old. So the timed bot (`CHILD` in `tests/harness/botcore.js`) plays the way a small child might on a first go. I set these rules before measuring and did not change them afterwards; I changed the level until it fitted:
+
+- it stops for 2 seconds to think before every new thing it does;
+- about a quarter of the time its mind is elsewhere and it does nothing;
+- it ambles (the stick pushed 70% of the way) instead of running;
+- it picks every berry near the path;
+- at each gate it tries the hero it has, and swaps only when the Keeper's hint names who is needed.
+
+This is my guess at a six-year-old, not a measurement of one. The first real measurement is Joshua's own play (3.4, below). If he is much quicker or slower, the level's length is easy to change: it is a list of sections.
+
+### What the checks found
+
+- **A freed creature made no sound.** The event that announces a freed creature was being sent under the creature's name instead of as "freed", so its happy sound and sparkle never played. Fixed in `src/sim.js`; the Level 2 check now counts those events.
+- **The first draft of the level was far too short.** The child-pace bot finished the first layout (437 steps) in under 6 minutes. I added stretches until it took about 9, and kept the walking broken up with things to do.
+- **The bot stopped to think in mid-air.** When a berry came into view during a jump, the bot paused and dropped into the gap, over and over. That was the bot's mistake, not the game's: nobody stops to think in the middle of a jump. The bot now thinks only with its feet on the ground.
+- **Drawing many frames in a row stalls the test browser.** A check that drew the picture on every step of the scene made the next page load wait almost a minute. The checks now move the picture on without drawing it.
+- **The skip check outgrew its half hour.** On the real hatching scene the 1.1 check makes 560 skips (one every tenth of a second through both scenes, by the Menu button and by the on-screen sign). It drew the picture after every skip, and a drawn frame takes two to three seconds in the test browser, so the check took 28 minutes and its file ran out of its 30 before the last check in it (1.5) could start. Nothing failed; 1.5 was cancelled. The check now draws one skip in ten and moves the picture on without drawing for the rest. Every skip is still made and every assertion is still made on every skip. It takes under 3 minutes.
+
+### The automated run
+
+- The whole suite, 18:15 to 18:45: 38 checks, 37 passed, none failed, 1 cancelled (1.5, for the reason above).
+- The Stage 1 file again after the change to its skip check, 18:48 to 18:52: 6 of 6 passed, 1.5 among them (Level 2 loaded and left ten times: 42 geometries, 42 textures and 16 programs the first time and the eleventh).
+- So every one of the 38 checks has passed on this code: 31 from Stages 0 to 2, and 7 new ones for Stage 3. The Stage 0 to 2 checks that work on levels (0.2, 1.1, 1.3, 1.4, 1.5) now run on the real Level 2 as well as the practice levels.
+
+### Choices the plan did not specify (Stage 3)
+
+- Everything between the gates: the order of walkways, gaps, platforms and ramps, and how many creatures and berries there are.
+- The Old Vine comes after the third gate and before Joshua's leap, so that the leap really is "the last long leap to the nest".
+- The gaps under the rope bridge and the waterfall are drops, not rivers, because the level is up in the trees.
+- Speedy's "zoom around Joshua's head" is three circles in 2.4 seconds.
+- The other family members are not moved for the hatching scene; the camera stays on Joshua and the egg, and Michael speaks from beside them.
+- Level 2 has no opening line of its own in the story draft, so it starts straight into play. (The Keeper's news between levels belongs to milestone 4.2.)
+
 ## Waiting on Michael
 
 - Nothing at the moment.
