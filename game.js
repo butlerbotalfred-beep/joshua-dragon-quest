@@ -2615,6 +2615,7 @@ class DragonQuestGame {
       return {
         index: i, def, ...render, dragonMesh, reviveRing,
         pos: new THREE.Vector3(startX, startY, startZ),
+        lastSafePos: new THREE.Vector3(startX, startY, startZ),
         vel: new THREE.Vector3(),
         facing: Math.PI,
         hp: def.maxHp, maxHp: def.maxHp,
@@ -3139,22 +3140,63 @@ class DragonQuestGame {
     for (const s of this.slopeZones) {
       if (x >= s.minX && x <= s.maxX && z >= s.minZ && z <= s.maxZ) {
         const t = THREE.MathUtils.clamp((s.maxZ - z) / (s.maxZ - s.minZ), 0, 1);
-        return { y: THREE.MathUtils.lerp(s.baseY, s.topY, t), steep: !!s.requiresSpeed && !canClimbSteep, onSolid: true };
+        return { y: THREE.MathUtils.lerp(s.baseY, s.topY, t), steep: !!s.requiresSpeed && !canClimbSteep, onSolid: true, moving: false };
       }
     }
     let bestY = null;
+    let isMoving = false;
     for (const mp of this.movingPlatforms) {
       if (x >= mp.x - mp.w / 2 && x <= mp.x + mp.w / 2 && z >= mp.z - mp.d / 2 && z <= mp.z + mp.d / 2) {
-        if (bestY === null || mp.topY > bestY) bestY = mp.topY;
+        if (bestY === null || mp.topY > bestY) { bestY = mp.topY; isMoving = true; }
       }
     }
     for (const p of this.platforms) {
       if (x >= p.minX && x <= p.maxX && z >= p.minZ && z <= p.maxZ) {
-        if (bestY === null || p.topY > bestY) bestY = p.topY;
+        if (bestY === null || p.topY > bestY) { bestY = p.topY; isMoving = false; }
       }
     }
-    if (bestY !== null) return { y: bestY, steep: false, onSolid: true };
-    return { y: -10, steep: false, onSolid: false };
+    if (bestY !== null) return { y: bestY, steep: false, onSolid: true, moving: isMoving };
+    return { y: -10, steep: false, onSolid: false, moving: false };
+  }
+
+  isSafeStandingSpot(x, z, y) {
+    const pad = 0.65;
+    const probes = [
+      [x, z],
+      [x + pad, z],
+      [x - pad, z],
+      [x, z + pad],
+      [x, z - pad],
+    ];
+    for (const [px, pz] of probes) {
+      const f = this.getFloorHeightAt(px, pz, false);
+      if (!f.onSolid || f.moving || f.steep || Math.abs(f.y - y) > 0.45) return false;
+    }
+    return true;
+  }
+
+  getFallHintForPosition(x, z) {
+    let matchedChasm = null;
+    for (const cz of this.chasmZones) {
+      if (Math.abs(x - cz.x) <= cz.w / 2 + 4 && Math.abs(z - cz.z) <= cz.d / 2 + 2.5) {
+        matchedChasm = cz;
+        break;
+      }
+    }
+    if (matchedChasm) {
+      if (matchedChasm.hintText) return matchedChasm.hintText;
+      if (matchedChasm.hazardType === 'lava') {
+        return 'Hot lava! Use Joshua on the slope.';
+      }
+      const hasMovingBridge = this.movingPlatforms.some(
+        (mp) => Math.abs(mp.baseZ - matchedChasm.z) <= matchedChasm.d / 2 + 2.5
+      );
+      if (hasMovingBridge) {
+        return 'Wait for the bridge or leap with Joshua.';
+      }
+      return 'Freeze the water with Vanessa!';
+    }
+    return 'Watch your step! Stay on the path.';
   }
 
   updateMovingPlatformsAndPuzzles(dt) {
@@ -3493,27 +3535,46 @@ class DragonQuestGame {
         }
       }
 
-      const floor = this.getFloorHeightAt(nextX, nextZ, isHyperJoshua || h.sprintBoostTimer > 0);
-      if (floor.steep && (isP1 || isP2) && nextZ < h.pos.z) {
+      const curFloor = this.getFloorHeightAt(h.pos.x, h.pos.z, isHyperJoshua || h.sprintBoostTimer > 0);
+      const nextFloor = this.getFloorHeightAt(nextX, nextZ, isHyperJoshua || h.sprintBoostTimer > 0);
+      if (nextFloor.steep && (isP1 || isP2) && nextZ < h.pos.z) {
         blocked = true;
-        this.showAlert('⛰️ Too steep! Use Prince Joshua + Speedy’s Hyper-Speed!', 1.8);
+        this.showAlert('Too steep! Use Joshua and Speedy!', 1.8);
+      }
+      const stepUpTol = h.onGround ? 0.55 : 0.08;
+      // Prevent walking/falling horizontally into the side of a higher platform and popping up onto it!
+      if (!blocked && nextFloor.onSolid && nextFloor.y > h.pos.y + stepUpTol) {
+        blocked = true;
       }
 
       if (!blocked) { h.pos.x = nextX; h.pos.z = nextZ; }
+      const floor = blocked ? curFloor : nextFloor;
+      const prevY = h.pos.y;
       h.pos.y += h.vel.y * dt;
 
-      if (floor.onSolid && h.pos.y <= floor.y && h.vel.y <= 0) {
+      if (floor.onSolid && prevY >= floor.y - stepUpTol && h.pos.y <= floor.y && h.vel.y <= 0) {
         h.pos.y = floor.y;
         h.vel.y = 0;
         h.onGround = true;
-      } else if (!floor.onSolid && h.pos.y < -3.5) {
-        h.pos.z += 5.5;
-        h.pos.x = 0;
-        h.pos.y = 2.0;
-        h.vel.set(0, 0, 0);
-        if (isP1 || isP2) {
-          this.hurtHero(h, 10);
-          this.showAlert('💦 Oops! Jump with [Space] or freeze water with Vanessa + Frosty!', 2.0);
+        if (this.isSafeStandingSpot(h.pos.x, h.pos.z, floor.y)) {
+          h.lastSafePos.copy(h.pos);
+        }
+      } else {
+        if (!floor.onSolid || h.pos.y > floor.y + 0.05) {
+          h.onGround = false;
+        }
+        const safeBaseY = h.lastSafePos ? h.lastSafePos.y : 0;
+        if (!floor.onSolid && h.pos.y < Math.min(-2.2, safeBaseY - 2.5)) {
+          const fallX = h.pos.x;
+          const fallZ = h.pos.z;
+          h.pos.copy(h.lastSafePos);
+          h.pos.y += 0.15;
+          h.vel.set(0, 0, 0);
+          h.onGround = true;
+          if (isP1 || isP2) {
+            this.hurtHero(h, 10);
+            this.showAlert(this.getFallHintForPosition(fallX, fallZ), 2.4);
+          }
         }
       }
 

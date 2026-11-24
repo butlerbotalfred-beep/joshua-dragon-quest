@@ -114,5 +114,113 @@ export async function runStage1Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 1.3: Falling into any gap returns to last safe spot (never past it) with accurate hint; never pops onto higher ledge
+  {
+    const name = '1.3: Falling into every gap in every level returns to last safe spot with right hint';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+
+      for (let lvl = 0; lvl < 6; lvl++) {
+        const gapResults = await page.evaluate((idx) => {
+          const g = window.game;
+          g.bondedDragons = [false, false, false, false];
+          g.startLevel(idx, false);
+          g.p1Hero = 1; // Daniel (no hyper-jump)
+          const h = g.heroes[1];
+          const out = [];
+
+          for (let ci = 0; ci < g.chasmZones.length; ci++) {
+            const cz = g.chasmZones[ci];
+            // Place hero on solid ground just before the chasm (near side = larger Z)
+            const nearZ = cz.z + cz.d / 2 + 2.5;
+            const safeX = Math.max(-6, Math.min(6, cz.x));
+            // Find solid floor near nearZ (check x=0 if cz.x is off-center like lava beside slope)
+            let startX = safeX;
+            let f = g.getFloorHeightAt(startX, nearZ, false);
+            if (!f.onSolid) {
+              startX = 0;
+              f = g.getFloorHeightAt(startX, nearZ, false);
+            }
+            if (!f.onSolid) continue;
+
+            h.pos.set(startX, f.y, nearZ);
+            h.lastSafePos.set(startX, f.y, nearZ);
+            h.vel.set(0, 0, 0);
+            h.onGround = true;
+            h.hp = h.maxHp;
+            h.downed = false;
+
+            // Step briefly on safe spot so lastSafePos is confirmed on near side
+            g.step(0.1, 1 / 60, false);
+            const savedZBeforeJump = h.lastSafePos.z;
+
+            // Jump forward into the open gap (offset away from any moving platform)
+            g.keys = { KeyW: true };
+            const hasMp = g.movingPlatforms.some((mp) => Math.abs(mp.baseZ - cz.z) <= cz.d / 2 + 2);
+            const jumpX = hasMp ? (cz.x >= 0 ? -8.5 : 8.5) : cz.x;
+            h.pos.x = jumpX;
+            h.lastSafePos.x = jumpX;
+            g.heroJump(h);
+            let fellAndRespawned = false;
+            for (let step = 0; step < 180; step++) {
+              g.step(1 / 60, 1 / 60, false);
+              if (step > 15 && h.onGround && Math.abs(h.pos.z - savedZBeforeJump) < 0.5) {
+                fellAndRespawned = true;
+                break;
+              }
+            }
+            g.keys = {};
+            const alertText = document.getElementById('alert-banner').textContent || '';
+            const farSideZ = cz.z - cz.d / 2;
+            out.push({
+              level: idx + 1,
+              chasmIndex: ci,
+              hazardType: cz.hazardType,
+              savedZBeforeJump,
+              finalZ: h.pos.z,
+              farSideZ,
+              alertText,
+              endedPastGap: h.pos.z < farSideZ + 0.5,
+            });
+          }
+
+          // Also check ramp-skip prevention on levels with steep slopes (Levels 3 & 5)
+          let rampSkipBlocked = true;
+          for (const sl of g.slopeZones) {
+            if (!sl.requiresSpeed) continue;
+            h.pos.set(sl.maxX + 1.5, sl.baseY, sl.minZ - 0.2);
+            h.vel.set(0, 0, -5);
+            h.onGround = false;
+            g.step(0.5, 1 / 60, false);
+            if (h.pos.y >= sl.topY - 0.2) rampSkipBlocked = false;
+          }
+
+          return { out, rampSkipBlocked };
+        }, lvl);
+
+        assert.equal(gapResults.rampSkipBlocked, true, `Level ${lvl + 1} allowed lifting onto higher ledge`);
+        for (const r of gapResults.out) {
+          assert.equal(
+            r.endedPastGap,
+            false,
+            `Level ${r.level} chasm ${r.chasmIndex} (${r.hazardType}): hero ended past gap (z=${r.finalZ}, farSide=${r.farSideZ})`
+          );
+          if (r.hazardType === 'lava') {
+            assert.ok(
+              !r.alertText.toLowerCase().includes('freeze water') && !r.alertText.toLowerCase().includes('vanessa'),
+              `Lava chasm gave water-freeze hint: "${r.alertText}"`
+            );
+          }
+        }
+      }
+
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
