@@ -958,6 +958,14 @@ class DragonQuestGame {
     this.levelGoalTriggered = false;
     this.alertTimer = 0;
     this.companionRallyTimer = 0;
+    this.lastProgressTime = 0;
+    this.lastHintTime = -999;
+    this.furthestZ = 10;
+    this.lastPlayedHint = null;
+    this.hintHistory = [];
+    this.captionQueue = [];
+    this.captionTimer = 0;
+    this.activeCaptionText = '';
     this.clock = new THREE.Clock();
     this.simTime = 0;
     this.manualStepping = false;
@@ -1681,9 +1689,124 @@ class DragonQuestGame {
     }
   }
 
+  chunkCaptionWords(text, maxWords = TUNING.maxCaptionWords) {
+    const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+    const chunks = [];
+    for (let i = 0; i < words.length; i += maxWords) {
+      chunks.push(words.slice(i, i + maxWords).join(' '));
+    }
+    return chunks.length ? chunks : [''];
+  }
+
+  showCaption(speaker, text, totalDuration = null) {
+    const chunks = this.chunkCaptionWords(text, TUNING.maxCaptionWords);
+    const perChunk = totalDuration
+      ? Math.max(1.2, totalDuration / chunks.length)
+      : Math.max(1.8, Math.min(3.0, chunks[0].split(/\s+/).length * 0.35 + 1.0));
+    this.captionQueue = chunks.map((chunk) => ({ speaker, text: chunk, duration: perChunk }));
+    this.advanceCaption();
+  }
+
+  advanceCaption() {
+    const el = document.getElementById('speech-caption');
+    const spkEl = document.getElementById('caption-speaker');
+    const txtEl = document.getElementById('caption-words');
+    if (!el || !spkEl || !txtEl) return;
+    if (this.captionQueue.length === 0) {
+      el.classList.add('hidden');
+      this.captionTimer = 0;
+      this.activeCaptionText = '';
+      return;
+    }
+    const item = this.captionQueue.shift();
+    spkEl.textContent = item.speaker || 'Keeper';
+    txtEl.textContent = item.text;
+    this.activeCaptionText = item.text;
+    this.captionTimer = item.duration;
+    el.classList.remove('hidden');
+  }
+
+  updateCaptions(dt) {
+    if (this.captionTimer > 0) {
+      this.captionTimer -= dt;
+      if (this.captionTimer <= 0) this.advanceCaption();
+    }
+  }
+
+  markProgress() {
+    this.lastProgressTime = this.simTime;
+  }
+
+  getCurrentKeeperHint() {
+    // 1. Webbed hero?
+    const trapped = this.heroes.find((h) => h.trappedByWeb);
+    if (trapped) {
+      return {
+        gateId: 'web_trap',
+        dialogueId: 'l1_keeper_web_hint',
+        text: 'A web is too sticky for one. Call your family.',
+        heroName: 'family',
+      };
+    }
+    const p1 = this.heroes[this.p1Hero];
+    // 2. Unopened gate ahead?
+    if (p1) {
+      const nextGate = this.gates
+        .filter((gt) => !gt.opened && p1.pos.z >= gt.z - 3.0)
+        .sort((a, b) => b.z - a.z)[0];
+      if (nextGate) {
+        const heroNames = ['Joshua', 'Daniel', 'Vanessa', 'Michael'];
+        const heroName = heroNames[nextGate.requiredHeroIdx] || 'family';
+        return {
+          gateId: nextGate.id,
+          dialogueId: nextGate.hintDialogueId || `hint_${nextGate.type}`,
+          text: nextGate.hintText || `Try ${heroName}'s gift here!`,
+          heroName,
+        };
+      }
+    }
+    // 3. Boss freed, egg waiting?
+    const def = LEVEL_DEFS[this.currentLevelIdx];
+    if (this.boss && this.boss.freed && this.eggObj && !this.eggObj.hatched && def && def.eggHeroIndex !== null) {
+      const heroNames = ['Joshua', 'Daniel', 'Vanessa', 'Michael'];
+      const heroName = heroNames[def.eggHeroIndex];
+      return {
+        gateId: 'egg_bond',
+        dialogueId: `hint_egg_${heroName.toLowerCase()}`,
+        text: `Bring ${heroName} to the glowing egg!`,
+        heroName,
+      };
+    }
+    return null;
+  }
+
+  updateKeeperHints() {
+    if (this.mode !== 'playing') return;
+    const p1 = this.heroes[this.p1Hero];
+    if (p1 && p1.pos.z < this.furthestZ - 2.0) {
+      this.furthestZ = p1.pos.z;
+      this.markProgress();
+    }
+    const idleTime = this.simTime - this.lastProgressTime;
+    const sinceLastHint = this.simTime - this.lastHintTime;
+    if (idleTime >= TUNING.hintDelaySeconds && sinceLastHint >= TUNING.hintDelaySeconds) {
+      const hint = this.getCurrentKeeperHint();
+      if (hint) {
+        this.lastHintTime = this.simTime;
+        this.lastPlayedHint = { ...hint, speaker: 'Keeper', time: this.simTime };
+        this.hintHistory.push(this.lastPlayedHint);
+        this.showCaption('Keeper', hint.text);
+        if (this.dialogue && hint.dialogueId) {
+          this.dialogue.play(hint.dialogueId).catch(() => {});
+        }
+      }
+    }
+  }
+
   showAlert(msg, duration = 3.2) {
     const el = document.getElementById('alert-banner');
-    el.textContent = msg;
+    const words = String(msg || '').trim().split(/\s+/).filter(Boolean);
+    el.textContent = words.slice(0, TUNING.maxCaptionWords).join(' ');
     el.classList.remove('hidden');
     this.alertTimer = duration;
   }
@@ -1930,6 +2053,11 @@ class DragonQuestGame {
     this.spawnHeroes();
     this.p1Hero = 0;
     this.p2Hero = 1;
+    this.lastProgressTime = this.simTime;
+    this.lastHintTime = -999;
+    this.furthestZ = this.heroes[0] ? this.heroes[0].pos.z : 4;
+    this.lastPlayedHint = null;
+    this.hintHistory = [];
     this.updateHUD();
 
     if (showIntro && def.introStory) {
@@ -3856,6 +3984,7 @@ class DragonQuestGame {
     const t = this.simTime;
     if (this.mode === 'cutscene') {
       this.updateCutscene(dt);
+      this.updateCaptions(dt);
       return;
     }
     if (this.mode === 'title') {
@@ -3930,7 +4059,9 @@ class DragonQuestGame {
       this.updateEnemies(dt);
       this.updateBoss(dt);
       this.checkPickupsAndObjectives(dt);
+      this.updateKeeperHints();
     }
+    this.updateCaptions(dt);
 
     this.wildlife.forEach((w) => {
       if (w.kind === 'rabbit') w.mesh.position.y = Math.abs(Math.sin(t * 3.5 + w.phase)) * 0.35;

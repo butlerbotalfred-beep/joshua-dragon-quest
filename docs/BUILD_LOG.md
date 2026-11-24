@@ -126,3 +126,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage2` — two virtual Xbox controllers activated 2P Co-Op and walked in opposite directions (left/right for 15s, forward/back for 15s); both players stayed comfortably on screen throughout (`maxNDC = [0.276, 0.474]`, `maxDist = 13.5u`).
 - **Result:** PASS (6 passed, 0 failed in stage2)
 - **Choices:** Added horizontal shared-screen tether (`coopMaxDistance = 13.5u`), zoomed co-op camera framing (`0.85x` separation factor), and updated guardian targeting to pick the closer standing player in co-op.
+
+### 2.7 Hints
+- **Started:** 2026-11-24T16:38:05Z
+- **Finished:** 2026-11-24T16:39:40Z
+- **Checks:** `npm test stage2` — waited at each gate in Level 1; verified no hint fired before 20s, and after 20s without progress the Keeper spoke a hint naming the required family member (`Daniel`, `Michael`, `Vanessa`) with captions strictly <= 8 words.
+- **Result:** PASS (7 passed, 0 failed in stage2)
+- **Choices:** Added `#speech-caption` HUD bar with automatic <= 8-word chunking (`chunkCaptionWords`), progress tracking via `furthestZ`/gate opens/boss frees, and `updateKeeperHints()` triggering after 20s without progress.

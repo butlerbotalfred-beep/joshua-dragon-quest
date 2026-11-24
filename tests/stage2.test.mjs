@@ -563,5 +563,73 @@ export async function runStage2Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 2.7: After 20s without progress at each gate, Keeper speaks a hint naming the required family member
+  {
+    const name = '2.7: Waiting 20s at each gate triggers Keeper hint naming the required hero (<=8 words)';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const hintResults = await page.evaluate(() => {
+        const g = window.game;
+        g.setDifficulty('easy', false);
+        g.startLevel(0, false);
+        g.enemies.forEach((e) => { e.dead = true; e.mesh.visible = false; });
+        g.webs.forEach((w) => { w.active = false; w.mesh.visible = false; });
+
+        const heroNames = ['Joshua', 'Daniel', 'Vanessa', 'Michael'];
+        const sortedGates = [...g.gates].sort((a, b) => b.z - a.z);
+        const out = [];
+
+        for (const gate of sortedGates) {
+          const waitZ = gate.z + (gate.chasmZone ? gate.chasmZone.d / 2 + 2.5 : 3.5);
+          g.p1Hero = (gate.requiredHeroIdx + 1) % 4;
+          g.heroes[g.p1Hero].pos.set(0, 0, waitZ);
+          g.heroes[g.p1Hero].lastSafePos.set(0, 0, waitZ);
+          g.furthestZ = waitZ;
+          g.lastProgressTime = g.simTime;
+          g.lastHintTime = -999;
+          g.lastPlayedHint = null;
+
+          // Wait 19s -> hint should NOT have played yet
+          g.step(19.0, 1 / 30, false);
+          const playedEarly = !!g.lastPlayedHint;
+
+          // Wait 2 more seconds (total 21s >= 20s) -> hint MUST play!
+          g.step(2.0, 1 / 30, false);
+          const hint = g.lastPlayedHint;
+          const captionText = document.getElementById('caption-words')?.textContent || '';
+          const captionWordCount = captionText.trim().split(/\s+/).filter(Boolean).length;
+
+          out.push({
+            gateId: gate.id,
+            expectedHero: heroNames[gate.requiredHeroIdx],
+            playedEarly,
+            hintSpeaker: hint?.speaker || null,
+            hintText: hint?.text || null,
+            namesHero: hint ? hint.text.includes(heroNames[gate.requiredHeroIdx]) : false,
+            captionText,
+            captionWordCount,
+          });
+
+          g.openGate(gate);
+        }
+        return out;
+      });
+
+      assert.ok(hintResults.length >= 3, 'Should check at least 3 gates');
+      for (const r of hintResults) {
+        assert.equal(r.playedEarly, false, `Gate ${r.gateId}: hint fired before 20s`);
+        assert.equal(r.hintSpeaker, 'Keeper', `Gate ${r.gateId}: hint speaker must be Keeper`);
+        assert.equal(r.namesHero, true, `Gate ${r.gateId}: hint "${r.hintText}" must name ${r.expectedHero}`);
+        assert.ok(r.captionWordCount > 0 && r.captionWordCount <= 8, `Caption "${r.captionText}" has ${r.captionWordCount} words (>8)`);
+      }
+
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
