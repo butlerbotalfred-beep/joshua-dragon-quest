@@ -427,9 +427,19 @@ export class View {
         gv.targets.push({ t, mesh: ring, marker: marker(t.x, t.y + 2.2, t.z), shown: 1, punch: 0, base: ring.position.clone() });
       });
       if (g.theme === 'waterfall') {
-        const fall = new THREE.Mesh(new THREE.PlaneGeometry(9, g.yFar - g.y + 8), new THREE.MeshStandardMaterial({ color: 0x6fc3ff, transparent: true, opacity: 0.75, roughness: 0.2 }));
-        fall.position.set(g.cx, g.y + (g.yFar - g.y) / 2 - 2, g.zFar + 0.3);
-        group.add(fall);
+        // Water tumbling down from the high bank, across the gap and away below.
+        const water = new THREE.MeshStandardMaterial({ color: 0x6fc3ff, emissive: 0x1d5f9a, emissiveIntensity: 0.35, transparent: true, opacity: 0.8, roughness: 0.2, side: THREE.DoubleSide });
+        const len = g.zNear - g.zFar, drop = g.yFar - g.y + 3.5;
+        const cascade = new THREE.Mesh(new THREE.PlaneGeometry(8.6, Math.hypot(len, drop)), water);
+        cascade.rotation.x = -Math.PI / 2 + Math.atan2(drop, len);
+        cascade.position.set(g.cx, g.yFar - drop / 2 - 0.25, (g.zNear + g.zFar) / 2);
+        const plunge = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 22), water);
+        plunge.position.set(g.cx, g.y - 3.5 - 11, g.zNear - 0.35);
+        const source = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 3.2), water);
+        source.rotation.x = -Math.PI / 2;
+        source.position.set(g.cx, g.yFar + 0.04, g.zFar - 1.5);
+        group.add(cascade, plunge, source);
+        gv.water = [cascade, plunge, source];
       }
     } else if (g.mech === 'bridge') {
       // A rope bridge that sways until it is held steady.
@@ -729,7 +739,18 @@ export class View {
       viz.mixer.update(dt);
     }
     if (h.dashT > 0 && Math.random() < 0.6) this.burst(h.x, h.y + 0.6, h.z, HEROES[0].color, 1, 1.2, 0.35);
-    if (viz.dragon) {
+    if (viz.dragon && viz.zoom) {
+      // A happy zoom: quick circles around the hero's head.
+      const z = viz.zoom;
+      z.t += dt;
+      const a = (z.t / z.T) * Math.PI * 2 * z.laps;
+      this.tmp.set(h.x + Math.sin(a) * 1.25, h.y + h.def.height + 0.35 + Math.sin(a * 2) * 0.25, h.z + Math.cos(a) * 1.25);
+      viz.dragonPos.lerp(this.tmp, Math.min(1, dt * 14));
+      viz.dragon.position.copy(viz.dragonPos);
+      viz.dragon.rotation.y = a + Math.PI / 2;
+      z.turned = a;
+      if (z.t >= z.T) viz.zoom = null;
+    } else if (viz.dragon) {
       const side = h.i % 2 === 0 ? -0.9 : 0.9;
       this.tmp.set(h.x + side * h.fz - h.fx * 0.5, h.y + h.def.height + 0.45 + Math.sin(t * 3 + h.i) * 0.14, h.z - side * h.fx - h.fz * 0.5);
       viz.dragonPos.lerp(this.tmp, Math.min(1, dt * 7));
@@ -795,6 +816,13 @@ export class View {
       gv.curtain.scale.setScalar(1 - gv.open * 0.5);
     }
     if (gv.sign) { gv.sign.visible = !g.open; gv.sign.position.y = g.y + 3.4 + Math.sin(t * 3) * 0.25; }
+    if (gv.water) {
+      // Frozen water turns pale and still.
+      const m = gv.water[0].material;
+      m.color.setRGB(0.44 + gv.open * 0.42, 0.76 + gv.open * 0.18, 1);
+      m.emissiveIntensity = 0.35 - gv.open * 0.25;
+      m.opacity = 0.8 + gv.open * 0.15 + (g.open ? 0 : Math.sin(t * 6) * 0.05);
+    }
     for (const tv of gv.targets) {
       const tt = tv.t;
       const active = !g.open && !tt.done && (!g.slices.length || world.nextTarget(g) === tt);
@@ -1013,6 +1041,14 @@ export class View {
     this.addDragon(egg.hero);
     const viz = this.heroViz[egg.hero];
     if (viz && viz.dragonPos) viz.dragonPos.set(egg.x, egg.y + 1.2, egg.z);
+  }
+
+  // A hero's dragon flies quick circles around the hero's head.
+  zoomDragon(i, seconds = 2.4, laps = 3) {
+    const viz = this.heroViz[i];
+    if (!viz || !viz.dragon) return false;
+    viz.zoom = { t: 0, T: seconds, laps, turned: 0 };
+    return true;
   }
 
   // ---- camera ---------------------------------------------------------------------------------

@@ -906,7 +906,7 @@ export class World {
       const m = Math.hypot(e.fx, e.fz); e.fx /= m; e.fz /= m;
       this.stats.enemiesFreed++;
       this.progress();
-      this.emit('enemyFreed', { id: e.id, type: e.type, hero: h.i });
+      this.emit('enemyFreed', { id: e.id, kind: e.type, hero: h.i });
     }
   }
 

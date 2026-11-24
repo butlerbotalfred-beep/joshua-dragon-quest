@@ -10,6 +10,15 @@
 //   noGates    do not try to open gates
 //   wander     try to get past a closed gate without its gift (for the bypass checks)
 //   lapse      { every, for, seed }: now and then the bot's mind wanders for a moment, as a person's does
+//   pace       how hard the stick is pushed when simply walking along (1 is flat out)
+//   needsHint  at a gate, keep trying with the hero in hand until the Keeper's hint names the right one
+//
+// CHILD is the bot that stands in for a six-year-old on a first play: it stops
+// to think before every new thing, drifts off for a moment every few seconds,
+// ambles instead of running, picks every berry near the path, and at each gate
+// tries the hero it has until the Keeper tells it who is needed.
+
+export const CHILD = { react: 2.0, collect: true, pace: 0.7, needsHint: true, lapse: { every: 8, for: 2.0, seed: 1 } };
 
 const blank = () => ({ mx: 0, mz: 0, jump: false, gift: false, next: false, prev: false, call: false });
 
@@ -66,9 +75,15 @@ export class Bot {
     if (this.o.hero !== undefined && this.o.wander && h.i !== this.o.hero) {
       this.borrowed = (this.borrowed || 0) + dt;
       if (w.heroes[this.o.hero].state === 'ok') this.press(inp, 'next', 0.08, 0.3);
-    } else this.decide(h, inp, dt);
+    } else {
+      this.careful = false;
+      this.decide(h, inp, dt);
+      // Ambling: only when simply walking, and never on the run-up to a jump or a ride.
+      if (this.o.pace && !this.careful && (this.job === 'walk' || this.job === 'berry')) { inp.mx *= this.o.pace; inp.mz *= this.o.pace; }
+    }
 
-    if (this.wait > 0) { this.wait -= dt; inp.mx = 0; inp.mz = 0; inp.gift = false; inp.jump = false; }
+    // Thinking time. Nobody stops to think in the middle of a jump.
+    if (this.wait > 0) { this.wait -= dt; if (h.onGround || h.state !== 'ok') { inp.mx = 0; inp.mz = 0; inp.gift = false; inp.jump = false; } }
     for (const k of Object.keys(this.tap)) {
       if (this.tap[k] > 0) { this.tap[k] -= dt; inp[k] = true; }
     }
@@ -158,8 +173,9 @@ export class Bot {
       const cur = L.sections[i], next = L.sections[i + 1];
       for (const s of [cur, next]) {
         if (!s || s.zNear <= z) continue;                        // the target comes first
-        if (s.t === 'ferry' && h.z - s.zNear < 4) return this.rideFerry(h, s, inp);
+        if (s.t === 'ferry' && h.z - s.zNear < 4) { this.careful = true; return this.rideFerry(h, s, inp); }
         if (s.t === 'hop' && h.z - s.zNear < 4) {
+          this.careful = true;
           if (h.z > s.zNear + 2 && Math.abs(h.x - s.cx) > 2) { this.walkTo(h, s.cx, s.zNear + 2, inp, 0.5); return false; }
           inp.mx = 0; inp.mz = -1;
           if (h.z - s.zNear < 0.6 && h.onGround) this.press(inp, 'jump', 0.1, 0.3);
@@ -202,6 +218,11 @@ export class Bot {
   doGate(h, gate, inp) {
     const w = this.w;
     if (this.o.wander) { this.wander(h, gate, inp); return; }
+    if (this.o.needsHint && h.i !== gate.hero && !w.stats.hints.some((q) => q.gate === gate.id)) {
+      // Not told yet: walk up and try the gift this hero has.
+      if (this.walkTo(h, gate.useSpot.x, gate.useSpot.z, inp, 1.5) && Math.floor(this.jobT / 2) % 2 === 1) inp.gift = true;
+      return;
+    }
     if (!this.wantHero(gate.hero, inp)) {
       if (this.o.hero !== undefined) this.walkTo(h, gate.useSpot.x, gate.useSpot.z, inp, 1.0);
       return;

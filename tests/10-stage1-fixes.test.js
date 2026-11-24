@@ -23,6 +23,7 @@ test('1.1 skipping the hatching scene at any moment still bonds the dragon', asy
       const game = window.game;
       const out = [];
       const scenes = [];
+      let drawn = 0;
       // Every level with an egg: the real ones, and the practice nest.
       const defs = [K.YARD_NEST, ...K.realLevels().map((n) => K.LEVELS[n]).filter((d) => d.course.some((s) => s.t === 'nest'))];
       const touchEgg = async (def) => {
@@ -74,7 +75,10 @@ test('1.1 skipping the hatching scene at any moment still bonds the dragon', asy
             if (!next) next = await K.start(def, {});                       // no next level yet: open this one again
             for (let i = 0; i < 6 && game.state === 'cutscene'; i++) K.tap(K.BUTTON.START);
             game.advance(0.2);
-            game.drawNow();
+            // Move the picture on after every skip. Draw it for real at one skip in ten:
+            // a drawn frame takes two to three seconds in the test browser, and 560 of them
+            // took the whole half hour this file is allowed.
+            if (out.length % 10 === 0) { game.drawNow(); drawn++; } else { game.view.sync(next, 0); game.view.snapCamera(); }
             const viz = game.view.heroViz[eh];
             row.nextLevel = game.level ? game.level.number : null;
             row.bondedInNext = next.heroes[eh].bonded;
@@ -83,9 +87,10 @@ test('1.1 skipping the hatching scene at any moment still bonds the dragon', asy
           }
         }
       }
-      return { out, scenes };
+      return { out, scenes, drawn };
     }, SAVE_KEY);
     assert.ok(res.out.length >= 100, `only ${res.out.length} skips tried`);
+    assert.ok(res.drawn >= res.out.length / 10, `only ${res.drawn} of the skips were drawn`);
     for (const s of res.scenes) {
       assert.ok(s.length >= 5, `the hatching scene of level ${s.level} lasts only ${s.length}s`);
       assert.strictEqual(s.endState, 'complete');
@@ -103,7 +108,7 @@ test('1.1 skipping the hatching scene at any moment still bonds the dragon', asy
       assert.ok(r.dragonVisibleInNext, `the dragon is missing in play (${tag})`);
     }
     assert.ok(res.out.some((r) => !r.skipped), 'no run reached the natural end of the scene');
-    console.log(`1.1 ${res.out.length} skips, scenes: ${res.scenes.map((s) => `level ${s.level} ${s.length}s`).join(', ')}`);
+    console.log(`1.1 ${res.out.length} skips (${res.drawn} drawn), scenes: ${res.scenes.map((s) => `level ${s.level} ${s.length}s`).join(', ')}`);
     assert.deepStrictEqual(g.errors, []);
   } finally { await g.close(); }
 });
