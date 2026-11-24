@@ -928,7 +928,7 @@ class DragonQuestGame {
     this.bindUI();
     this.bindInput();
     this.refreshSaveUI();
-    this.loadAllAssets();
+    this.assetsReady = this.loadAllAssets();
 
     window.addEventListener('resize', () => this.onResize());
     this.animate();
@@ -4023,9 +4023,25 @@ class DragonQuestGame {
 
   animate() {
     requestAnimationFrame(() => this.animate());
+    if (this.manualStepping) {
+      // Test harness drives time through advance(); just keep drawing.
+      if (!this.skipRender) this.renderer.render(this.scene, this.camera);
+      return;
+    }
     const dt = Math.min(0.05, this.clock.getDelta());
     this.update(dt);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  // Test harness hook: step the game forward by a fixed amount of game time.
+  advance(seconds, dt = 1 / 60) {
+    this.manualStepping = true;
+    const steps = Math.round(seconds / dt);
+    for (let i = 0; i < steps; i++) {
+      this.clock.elapsedTime += dt;
+      this.update(dt);
+    }
+    return this.clock.elapsedTime;
   }
 }
 

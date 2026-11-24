@@ -1,0 +1,13 @@
+{
+  "name": "royal-dragon-rescue",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Royal Dragon Rescue. A static three.js game with no build step. The only dependency is the test harness.",
+  "scripts": {
+    "start": "node tests/harness/serve.js",
+    "test": "node tests/harness/run.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
