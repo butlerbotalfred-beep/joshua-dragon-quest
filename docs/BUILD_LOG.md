@@ -101,3 +101,14 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage2` (plus full stage0+stage1 verification) — for every gate in Level 1 (bramble, boulder, stream), each of the three wrong heroes walked, jumped, hugged both corridor edges, and used abilities for 60 seconds without opening or getting past the gate; the matching hero then opened and crossed each gate cleanly.
 - **Result:** PASS (3 passed, 0 failed in stage2)
 - **Choices:** Added `getCorridorXBounds(z)` solid corridor clamping from platform/slope/chasm geometry, full-span visual gate flanks + `this.gates` barrier enforcement (preventing walking around or jumping over), and nearest-closed-gate gating so abilities cannot open downstream gates through an earlier shut gate.
+
+### 2.4 Guardian fights
+- **Started:** 2026-11-24T16:29:15Z
+- **Finished:** 2026-11-24T16:32:45Z
+- **Checks:** `npm test stage2` — competent bot fought all 6 guardians × 4 heroes × 10 trials (240 total fights) on Easy:
+  - All 240 fights landed in target duration (50.43s–98.30s; forest guardians 45–90s, Level 6 Great Black Dragon 60–120s).
+  - Max continuous ice hold across all 240 fights: 1.20s (<= 1.5s limit).
+  - Max gap between guardian actions: 4.63s (<= 6.0s limit).
+  - Every guardian ended freed, friendly, and visible in the arena with spell broken.
+- **Result:** PASS (4 passed, 0 failed in stage2)
+- **Choices:** Centralized hero combat damage/cooldowns and guardian HP in `src/config.js`; added ice slow (`0.55x`) + capped chill hold (`1.2s`) + `5.5s` ice-hold immunity cooldown; kept freed guardians visible with a warm green-gold friendly aura ring; fixed a re-entrant projectile splice bug when a projectile lands the freeing blow.

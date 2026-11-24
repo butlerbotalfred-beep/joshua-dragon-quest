@@ -46,12 +46,34 @@ export const DIFFICULTIES = {
 
 export const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'];
 
+export const GUARDIAN_HP = {
+  bear: 1120,
+  vine: 1180,
+  magma: 1220,
+  yeti: 1260,
+  gargoyle: 1300,
+  black_dragon: 1580,
+};
+
+export const HERO_COMBAT = [
+  // 0: Joshua
+  { cd: 0.50, dmg: 10.5, bondedDmg: 12.0, magicCost: 0, fallbackDmg: 10.5 },
+  // 1: Daniel
+  { cd: 0.52, dmg: 11.5, bondedDmg: 13.0, magicCost: 6, fallbackDmg: 9.5 },
+  // 2: Vanessa
+  { cd: 0.52, dmg: 11.0, bondedDmg: 12.5, magicCost: 6, fallbackDmg: 9.5 },
+  // 3: Michael
+  { cd: 0.56, dmg: 12.0, bondedDmg: 13.5, magicCost: 0, fallbackDmg: 12.0 },
+];
+
 export const TUNING = {
   // Guardian fight targets (Easy: 45-90s, guardian acts <= every 6s, ice hold <= 1.5s)
-  maxBossIceHold: 1.4,
+  maxBossIceHold: 1.25,
   bossIceSlowFactor: 0.55,
-  bossIceImmunityDuration: 4.5,
-  bossMaxActInterval: 5.2,
+  bossIceImmunityDuration: 5.5,
+  bossMaxActInterval: 5.0,
+  dragonAssistCd: 2.8,
+  dragonAssistDmg: 5,
   companionMaxShare: 0.24,
   coopMaxDistance: 13.5,
   hintDelaySeconds: 20,

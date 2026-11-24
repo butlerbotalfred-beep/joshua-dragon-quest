@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { DIFFICULTIES, DIFFICULTY_ORDER, TUNING } from './src/config.js';
+import { DIFFICULTIES, DIFFICULTY_ORDER, GUARDIAN_HP, HERO_COMBAT, TUNING } from './src/config.js';
 
 // ============================================================================
 // JOSHUA & THE DRAGON QUEST — Wave 2 Enhanced 3D Action-Adventure
@@ -2643,13 +2643,42 @@ class DragonQuestGame {
   addBoss(bossType, bossName, x, z, y = 0) {
     const mesh = this.createBossRenderable(bossType);
     mesh.position.set(x, y, z);
+
+    // Spell aura ring (purple while under dragon's spell; turns warm gold-green when freed & friendly!)
+    const auraRing = new THREE.Mesh(
+      new THREE.RingGeometry(2.2, 2.75, 28),
+      new THREE.MeshBasicMaterial({ color: 0x9b59b6, side: THREE.DoubleSide, transparent: true, opacity: 0.72 })
+    );
+    auraRing.rotation.x = -Math.PI / 2;
+    auraRing.position.y = 0.09;
+    mesh.add(auraRing);
+
     this.worldGroup.add(mesh);
-    const hpMap = { bear: 220, vine: 250, magma: 290, yeti: 320, gargoyle: 350, black_dragon: 520 };
+    const diffCfg = this.getDifficultyConfig();
+    const baseHp = GUARDIAN_HP[bossType] || 1150;
+    const maxHp = Math.round(baseHp * diffCfg.bossHpMult);
     this.boss = {
-      type: bossType, name: bossName, mesh, pos: new THREE.Vector3(x, y, z), home: new THREE.Vector3(x, y, z),
-      hp: hpMap[bossType] || 240, maxHp: hpMap[bossType] || 240,
-      activated: false, frozenTimer: 0, hitFlash: 0, attackTimer: 1.8,
-      chargeVec: new THREE.Vector3(), charging: 0, dead: false,
+      type: bossType, name: bossName, mesh, auraRing,
+      pos: new THREE.Vector3(x, y, z), home: new THREE.Vector3(x, y, z),
+      hp: maxHp, maxHp,
+      activated: false,
+      frozenTimer: 0,
+      slowTimer: 0,
+      iceImmunityTimer: 0,
+      continuousFrozenTime: 0,
+      maxContinuousFrozenTime: 0,
+      timeSinceLastAction: 0,
+      maxActionGap: 0,
+      actionCount: 0,
+      hitFlash: 0,
+      attackTimer: 1.8,
+      chargeVec: new THREE.Vector3(),
+      charging: 0,
+      dead: false,
+      freed: false,
+      friendly: false,
+      damageByPlayer: 0,
+      damageByCompanions: 0,
     };
   }
 
@@ -2975,7 +3004,7 @@ class DragonQuestGame {
         hp: def.maxHp, maxHp: def.maxHp,
         onGround: true, trappedByWeb: null,
         downed: false, reviveProgress: 0,
-        armorTimer: 0, attackCd: 0, hurtCd: 0, sprintBoostTimer: 0,
+        armorTimer: 0, attackCd: 0, hurtCd: 0, sprintBoostTimer: 0, dragonAssistCd: 0,
       };
     });
   }
@@ -3144,35 +3173,38 @@ class DragonQuestGame {
     // Every hero's attack also frees nearby family members trapped in spider webs!
     this.tryBreakNearbyWebs(hero.pos, 4.8);
 
+    const combat = HERO_COMBAT[hero.index];
+    const fromPlayer = this.isHeroPlayerControlled(hero);
+
     if (hero.index === 0) {
       // PRINCE JOSHUA: Wind Crescent Slash + Speed Dash Strike (0 Magic!)
-      hero.attackCd = 0.32;
+      hero.attackCd = combat.cd;
       hero.sprintBoostTimer = bonded ? 1.4 : 0.7;
-      hero.vel.x += dir.x * (bonded ? 17 : 12);
-      hero.vel.z += dir.z * (bonded ? 17 : 12);
+      hero.vel.x += dir.x * (bonded ? 15 : 11);
+      hero.vel.z += dir.z * (bonded ? 15 : 11);
       this.audio.sfxSpeed();
       const strikePos = hero.pos.clone().addScaledVector(dir, 1.8);
       this.spawnSlashVfx(strikePos, hero.facing, 0x39e58c, bonded ? 3.2 : 2.3);
       this.spawnParticles(strikePos.clone().add(new THREE.Vector3(0, 0.9, 0)), 0x39e58c, 16);
-      this.dealAreaDamage(strikePos, bonded ? 3.5 : 2.8, bonded ? 34 : 22, 'wind');
+      this.dealAreaDamage(strikePos, bonded ? 3.5 : 2.8, bonded ? combat.bondedDmg : combat.dmg, 'wind', fromPlayer);
       this.tryOpenNearbyGateByHeroAction(hero, 'wind', strikePos, 7.0);
     } else if (hero.index === 1) {
       // PRINCE DANIEL: Fireball / Inferno Blast (or zero-magic Flame Swipe if low on magic!)
-      const cost = bonded ? 15 : 10;
-      hero.attackCd = 0.36;
+      const cost = combat.magicCost;
+      hero.attackCd = combat.cd;
       const fireKind = bonded ? 'inferno' : 'fire';
       if (this.magic >= cost) {
         this.magic -= cost;
         bonded ? this.audio.sfxInferno() : this.audio.sfxFire();
-        if (bonded) this.triggerShake(0.28, 0.18);
+        if (bonded) this.triggerShake(0.24, 0.16);
         this.spawnProjectile({
           kind: fireKind,
           ownerHeroIdx: hero.index,
-          fromPlayer: this.isHeroPlayerControlled(hero),
+          fromPlayer,
           pos: hero.pos.clone().add(new THREE.Vector3(0, 1.15, 0)).addScaledVector(dir, 0.9),
-          vel: dir.clone().multiplyScalar(bonded ? 24 : 19),
-          radius: bonded ? 1.15 : 0.65,
-          damage: bonded ? 44 : 26,
+          vel: dir.clone().multiplyScalar(bonded ? 24 : 20),
+          radius: bonded ? 1.15 : 0.72,
+          damage: bonded ? combat.bondedDmg : combat.dmg,
           color: bonded ? 0xff7b00 : 0xff4500,
           life: 2.0,
         });
@@ -3183,13 +3215,13 @@ class DragonQuestGame {
         const swipePos = hero.pos.clone().addScaledVector(dir, 1.7);
         this.spawnSlashVfx(swipePos, hero.facing, 0xff5722, 2.3);
         this.spawnParticles(swipePos.clone().add(new THREE.Vector3(0, 0.9, 0)), 0xff7043, 12);
-        this.dealAreaDamage(swipePos, 2.7, 16, 'fire');
+        this.dealAreaDamage(swipePos, 2.8, combat.fallbackDmg, 'fire', fromPlayer);
         this.tryOpenNearbyGateByHeroAction(hero, fireKind, swipePos, 6.0);
       }
     } else if (hero.index === 2) {
       // QUEEN VANESSA: Ice Blast / Glacial Surge (or zero-magic Frost Staff Wave if low on magic!)
-      const cost = bonded ? 14 : 10;
-      hero.attackCd = 0.38;
+      const cost = combat.magicCost;
+      hero.attackCd = combat.cd;
       const iceKind = bonded ? 'glacial' : 'ice';
       if (this.magic >= cost) {
         this.magic -= cost;
@@ -3197,11 +3229,11 @@ class DragonQuestGame {
         this.spawnProjectile({
           kind: iceKind,
           ownerHeroIdx: hero.index,
-          fromPlayer: this.isHeroPlayerControlled(hero),
+          fromPlayer,
           pos: hero.pos.clone().add(new THREE.Vector3(0, 1.15, 0)).addScaledVector(dir, 0.9),
-          vel: dir.clone().multiplyScalar(20),
-          radius: bonded ? 1.2 : 0.72,
-          damage: bonded ? 32 : 20,
+          vel: dir.clone().multiplyScalar(21),
+          radius: bonded ? 1.2 : 0.75,
+          damage: bonded ? combat.bondedDmg : combat.dmg,
           color: 0x5ce1ff,
           life: 2.0,
         });
@@ -3211,18 +3243,18 @@ class DragonQuestGame {
         this.audio.sfxIce();
         const wavePos = hero.pos.clone().addScaledVector(dir, 1.6);
         this.spawnShockwaveVfx(wavePos, 0x5ce1ff, 0.7);
-        this.dealAreaDamage(wavePos, 2.9, 14, 'ice');
+        this.dealAreaDamage(wavePos, 3.0, combat.fallbackDmg, 'ice', fromPlayer);
         this.tryOpenNearbyGateByHeroAction(hero, iceKind, wavePos, 8.5);
       }
     } else if (hero.index === 3) {
       // KING MICHAEL: Heavy Ground Slam / Titan Smash (0 Magic!)
-      hero.attackCd = 0.42;
+      hero.attackCd = combat.cd;
       this.audio.sfxSmash();
-      this.triggerShake(bonded ? 0.42 : 0.25, 0.2);
+      this.triggerShake(bonded ? 0.36 : 0.22, 0.18);
       const hitPos = hero.pos.clone().addScaledVector(dir, 1.9);
       this.spawnShockwaveVfx(hitPos, bonded ? 0xd8b4fe : 0xf5c953, bonded ? 1.0 : 0.75);
       this.spawnParticles(hitPos.clone().add(new THREE.Vector3(0, 0.7, 0)), 0xb76eff, 22);
-      this.dealAreaDamage(hitPos, bonded ? 4.4 : 3.3, bonded ? 48 : 30, bonded ? 'titan' : 'strength');
+      this.dealAreaDamage(hitPos, bonded ? 4.4 : 3.4, bonded ? combat.bondedDmg : combat.dmg, bonded ? 'titan' : 'strength', fromPlayer);
       this.tryOpenNearbyGateByHeroAction(hero, bonded ? 'titan' : 'strength', hitPos, 6.5);
       this.obstacles.forEach((ob) => {
         if (!ob.active) return;
@@ -3354,12 +3386,12 @@ class DragonQuestGame {
     }
   }
 
-  dealAreaDamage(center, radius, dmg, element) {
+  dealAreaDamage(center, radius, dmg, element, fromPlayer = true) {
     this.enemies.forEach((en) => {
       if (!en.dead && en.pos.distanceTo(center) <= radius + 0.95) this.damageEnemy(en, dmg, element);
     });
     if (this.boss && !this.boss.dead && this.boss.pos.distanceTo(center) <= radius + 2.5) {
-      this.damageBoss(dmg, element);
+      this.damageBoss(dmg, element, fromPlayer);
     }
   }
 
@@ -3381,39 +3413,89 @@ class DragonQuestGame {
     }
   }
 
-  damageBoss(dmg, element) {
+  damageBoss(dmg, element, fromPlayer = true) {
     if (!this.boss || this.boss.dead) return;
     let mult = 1.0;
-    if (this.boss.type === 'vine' && (element === 'fire' || element === 'inferno')) mult = 1.45;
-    if (this.boss.type === 'magma' && (element === 'ice' || element === 'glacial')) mult = 1.5;
-    if (this.boss.type === 'yeti' && (element === 'fire' || element === 'inferno')) mult = 1.5;
-    if (this.boss.type === 'gargoyle' && (element === 'ice' || element === 'glacial' || element === 'titan')) mult = 1.35;
+    if (this.boss.type === 'vine' && (element === 'fire' || element === 'inferno')) mult = 1.12;
+    if (this.boss.type === 'magma' && (element === 'ice' || element === 'glacial')) mult = 1.12;
+    if (this.boss.type === 'yeti' && (element === 'fire' || element === 'inferno')) mult = 1.12;
+    if (this.boss.type === 'gargoyle' && (element === 'ice' || element === 'glacial' || element === 'titan')) mult = 1.12;
 
-    const total = Math.round(dmg * mult);
+    let total = Math.max(1, Math.round(dmg * mult));
+
+    // Enforce companion damage share cap (< 25% of total fight damage, Milestone 2.5)
+    if (!fromPlayer) {
+      const capRatio = this.getDifficultyConfig().companionDmgShareCap || 0.22;
+      const maxCompanionTotal = Math.floor(this.boss.maxHp * capRatio);
+      const remainingAllowance = Math.max(0, maxCompanionTotal - this.boss.damageByCompanions);
+      // Also never let companions deal the finishing blow or exceed current player share
+      const dynamicCap = Math.max(0, Math.floor((this.boss.damageByPlayer * capRatio) / (1 - capRatio)) - this.boss.damageByCompanions);
+      total = Math.min(total, remainingAllowance, dynamicCap, Math.max(0, this.boss.hp - 1));
+      if (total <= 0) return;
+      this.boss.damageByCompanions += total;
+    } else {
+      this.boss.damageByPlayer += total;
+    }
+
     this.boss.hp = Math.max(0, this.boss.hp - total);
-    this.boss.hitFlash = 0.18;
-    if (element === 'ice' || element === 'glacial') this.boss.frozenTimer = 1.6;
+    this.boss.hitFlash = 0.16;
+
+    // Ice slows a guardian and cannot hold it still for more than 1.5s (with immunity cooldown!)
+    if (element === 'ice' || element === 'glacial') {
+      this.boss.slowTimer = 3.2;
+      if (this.boss.iceImmunityTimer <= 0 && this.boss.frozenTimer <= 0) {
+        this.boss.frozenTimer = Math.min(1.2, TUNING.maxBossIceHold);
+        this.boss.iceImmunityTimer = TUNING.bossIceImmunityDuration;
+        this.spawnFloatingText(this.boss.pos.clone().add(new THREE.Vector3(0, 4.1, 0)), '❄️ CHILLED!', '#80e8ff');
+      }
+    }
+
     this.audio.sfxHit();
-    this.triggerShake(0.22, 0.14);
-    this.spawnParticles(this.boss.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), 0xffc107, 16);
+    this.triggerShake(0.16, 0.11);
+    this.spawnParticles(this.boss.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), 0xffc107, 10);
     this.spawnFloatingText(this.boss.pos.clone().add(new THREE.Vector3(0, 3.8, 0)), mult > 1 ? `-${total} SUPER!` : `-${total}`, mult > 1 ? '#ff7043' : '#ffe066');
     this.updateBossHUD();
 
     if (this.boss.hp <= 0) {
+      // Guardian is FREED from the spell and becomes friendly — never killed!
       this.boss.dead = true;
-      this.boss.mesh.visible = false;
+      this.boss.freed = true;
+      this.boss.friendly = true;
+      this.boss.frozenTimer = 0;
+      this.boss.slowTimer = 0;
+      this.boss.charging = 0;
+      this.boss.mesh.visible = true;
+      if (this.boss.auraRing) {
+        this.boss.auraRing.material.color.setHex(0x69f0ae);
+        this.boss.auraRing.material.opacity = 0.85;
+      }
+      // Clear any remaining boss danger zones or projectiles immediately
+      for (let i = this.dangerZones.length - 1; i >= 0; i--) {
+        this.worldGroup.remove(this.dangerZones[i].mesh);
+        this.disposeObject3D(this.dangerZones[i].mesh);
+      }
+      this.dangerZones = [];
+      for (const proj of this.projectiles) {
+        if (proj.fromBoss) {
+          proj.life = -1;
+          if (proj.mesh) proj.mesh.visible = false;
+        }
+      }
+
       this.audio.sfxVictory();
-      this.triggerShake(0.55, 0.45);
-      this.spawnParticles(this.boss.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xffd700, 48);
+      this.triggerShake(0.45, 0.35);
+      this.spawnParticles(this.boss.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0x69f0ae, 48);
+      this.spawnFloatingText(this.boss.pos.clone().add(new THREE.Vector3(0, 4.4, 0)), '✨ SPELL BROKEN!', '#69f0ae');
       document.getElementById('boss-hud').classList.add('hidden');
       this.audio.setMusicMode('overworld');
+      this.lastProgressTime = this.simTime;
 
       const def = LEVEL_DEFS[this.currentLevelIdx];
       if (def.index === 0) {
-        this.showAlert('🎉 Giant Grizzly Bear defeated! Walk forward to meet the Keeper of the Forest!', 4.5);
+        this.showAlert('The Great Bear is free!', 4.0);
       } else if (def.eggHeroIndex !== null) {
         const heroName = HERO_DEFS[def.eggHeroIndex].name;
-        this.showAlert(`🎉 Boss defeated! Guide ${heroName} [${def.eggHeroIndex + 1}] to hold the glowing Egg!`, 5.0);
+        this.showAlert(`Guardian freed! Bring ${heroName} to the egg!`, 4.5);
       } else if (def.index === 5) {
         this.completedLevels.add(5);
         this.highestLevel = 5;
@@ -3423,20 +3505,24 @@ class DragonQuestGame {
     }
   }
 
-  // Bonded Baby Dragon Team Assist: during boss fights, your bonded dragon fires a bonus elemental bolt!
+  // Bonded Baby Dragon Team Assist: during boss fights, your bonded dragon fires a periodic bonus bolt!
   triggerDragonAssist(hero) {
     if (!this.bondedDragons[hero.index] || !this.boss || this.boss.dead || !this.boss.activated) return;
+    if (hero.dragonAssistCd > 0) return;
     if (this.boss.pos.distanceTo(hero.pos) > 22) return;
+    hero.dragonAssistCd = TUNING.dragonAssistCd;
     const dir = this.boss.pos.clone().sub(hero.dragonMesh.position);
     dir.y = 0;
     if (dir.lengthSq() < 0.01) return;
     dir.normalize();
     this.spawnProjectile({
       kind: ['wind', 'inferno', 'glacial', 'titan'][hero.index],
+      ownerHeroIdx: hero.index,
+      fromPlayer: this.isHeroPlayerControlled(hero),
       pos: hero.dragonMesh.position.clone(),
       vel: dir.multiplyScalar(22),
       radius: 0.55,
-      damage: 14,
+      damage: TUNING.dragonAssistDmg,
       color: hero.def.dragonColor,
       life: 1.6,
     });
@@ -3820,7 +3906,7 @@ class DragonQuestGame {
       }
     });
 
-    const regenRate = this.magicBoostTimer > 0 ? 11.5 : 3.8;
+    const regenRate = this.magicBoostTimer > 0 ? 12.5 : 5.5;
     if (this.magicBoostTimer > 0) this.magicBoostTimer = Math.max(0, this.magicBoostTimer - dt);
     this.magic = Math.min(this.maxMagic, this.magic + regenRate * dt);
 
@@ -3919,6 +4005,7 @@ class DragonQuestGame {
       if (h.hurtCd > 0) h.hurtCd -= dt;
       if (h.armorTimer > 0) h.armorTimer -= dt;
       if (h.sprintBoostTimer > 0) h.sprintBoostTimer -= dt;
+      if (h.dragonAssistCd > 0) h.dragonAssistCd -= dt;
       h.armorBubble.visible = h.armorTimer > 0;
 
       const isP1 = idx === this.p1Hero;
@@ -4205,6 +4292,7 @@ class DragonQuestGame {
   updateProjectiles(dt) {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
+      if (!p) { this.projectiles.splice(i, 1); continue; }
       p.life -= dt;
       p.pos.addScaledVector(p.vel, dt);
       p.mesh.position.copy(p.pos);
@@ -4264,7 +4352,7 @@ class DragonQuestGame {
           }
         }
         if (!hit && this.boss && !this.boss.dead && this.boss.pos.distanceTo(p.pos) < p.radius + 2.5) {
-          this.damageBoss(p.damage, p.kind);
+          this.damageBoss(p.damage, p.kind, p.fromPlayer !== false);
           hit = true;
         }
       }
@@ -4339,9 +4427,27 @@ class DragonQuestGame {
 
   updateBoss(dt) {
     const b = this.boss;
-    if (!b || b.dead) return;
+    if (!b) return;
     const t = this.simTime;
-    const target = this.heroes[this.p1Hero];
+
+    // Freed guardian stays in the arena, happy and friendly!
+    if (b.dead && b.freed) {
+      const p1 = this.heroes[this.p1Hero];
+      if (p1) {
+        const dx = p1.pos.x - b.pos.x;
+        const dz = p1.pos.z - b.pos.z;
+        if (dx * dx + dz * dz > 0.2) b.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+      b.mesh.position.set(b.pos.x, b.pos.y + Math.abs(Math.sin(t * 2.6)) * 0.22, b.pos.z);
+      if (b.auraRing) b.auraRing.rotation.z += dt * 0.8;
+      return;
+    }
+    if (b.dead) return;
+
+    const target = this.heroes[this.p1Hero] && !this.heroes[this.p1Hero].downed
+      ? this.heroes[this.p1Hero]
+      : this.heroes.find((h) => !h.downed) || this.heroes[0];
+    if (!target) return;
     const dist = target.pos.distanceTo(b.pos);
 
     if (!b.activated && dist < 22) {
@@ -4350,11 +4456,33 @@ class DragonQuestGame {
       document.getElementById('boss-hud').classList.remove('hidden');
       this.updateBossHUD();
       this.triggerShake(0.38, 0.35);
-      this.showAlert(`⚔️ BOSS BATTLE: ${b.name}!`, 2.6);
+      this.showAlert(`Free the guardian: ${b.name}!`, 2.6);
     }
     if (!b.activated) return;
 
-    if (b.frozenTimer > 0) { b.frozenTimer -= dt; return; }
+    if (b.iceImmunityTimer > 0) b.iceImmunityTimer = Math.max(0, b.iceImmunityTimer - dt);
+    if (b.slowTimer > 0) b.slowTimer = Math.max(0, b.slowTimer - dt);
+
+    b.timeSinceLastAction += dt;
+    if (b.timeSinceLastAction > b.maxActionGap) b.maxActionGap = b.timeSinceLastAction;
+
+    if (b.frozenTimer > 0) {
+      b.frozenTimer = Math.max(0, b.frozenTimer - dt);
+      b.continuousFrozenTime += dt;
+      if (b.continuousFrozenTime > b.maxContinuousFrozenTime) {
+        b.maxContinuousFrozenTime = b.continuousFrozenTime;
+      }
+      if (b.continuousFrozenTime >= TUNING.maxBossIceHold) {
+        b.frozenTimer = 0;
+      }
+      // Subtle shiver visual while chilled; attackTimer still ticks slowly so action cadence stays <= 6s
+      b.attackTimer -= dt * 0.5;
+      b.mesh.position.set(b.pos.x + Math.sin(t * 35) * 0.08, b.pos.y, b.pos.z);
+      return;
+    }
+    b.continuousFrozenTime = 0;
+
+    const speedMult = b.slowTimer > 0 ? TUNING.bossIceSlowFactor : 1.0;
 
     const toHero = target.pos.clone().sub(b.pos);
     toHero.y = 0;
@@ -4366,9 +4494,9 @@ class DragonQuestGame {
 
     if (b.charging > 0) {
       b.charging -= dt;
-      b.pos.addScaledVector(b.chargeVec, 11.5 * dt);
+      b.pos.addScaledVector(b.chargeVec, 11.5 * speedMult * dt);
     } else if (len > 3.2) {
-      b.pos.addScaledVector(toHero, (b.type === 'black_dragon' ? 4.8 : 3.8) * dt);
+      b.pos.addScaledVector(toHero, (b.type === 'black_dragon' ? 4.8 : 3.8) * speedMult * dt);
     }
     b.pos.x = THREE.MathUtils.clamp(b.pos.x, -12, 12);
     b.pos.z = THREE.MathUtils.clamp(b.pos.z, b.home.z - 12, b.home.z + 12);
@@ -4393,7 +4521,9 @@ class DragonQuestGame {
     const diffCfg = this.getDifficultyConfig();
     b.attackTimer -= dt;
     if (b.attackTimer <= 0) {
-      const baseInterval = b.type === 'black_dragon' ? (enraged ? 1.85 : 2.35) : enraged ? 2.15 : 2.75;
+      b.timeSinceLastAction = 0;
+      b.actionCount++;
+      const baseInterval = b.type === 'black_dragon' ? (enraged ? 2.1 : 2.6) : enraged ? 2.4 : 3.0;
       b.attackTimer = Math.min(TUNING.bossMaxActInterval, baseInterval * diffCfg.bossAttackIntervalMult);
       b.attackCycle = (b.attackCycle || 0) + 1;
 

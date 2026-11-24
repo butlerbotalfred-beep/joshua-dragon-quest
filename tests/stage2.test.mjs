@@ -283,5 +283,112 @@ export async function runStage2Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 2.4: Guardian fights (10x per guardian per hero: 45-90s on Easy, acts <=6s, ice <=1.5s, ends freed & friendly)
+  {
+    const name = '2.4: Guardian fights (10x each guardian x each hero: 45-90s, acts <=6s, ice <=1.5s, freed & friendly)';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const summary = await page.evaluate(() => {
+        const g = window.game;
+        g.setDifficulty('easy', false);
+        const failures = [];
+        let minTime = Infinity;
+        let maxTime = 0;
+        let maxFreezeSeen = 0;
+        let maxActGapSeen = 0;
+        let totalFights = 0;
+
+        // Test all 6 guardians x 4 heroes x 10 trials = 240 fights
+        for (let lvl = 0; lvl < 6; lvl++) {
+          for (let heroIdx = 0; heroIdx < 4; heroIdx++) {
+            for (let trial = 0; trial < 10; trial++) {
+              totalFights++;
+              // Use progression-accurate dragon bonds for each level
+              g.bondedDragons = [lvl >= 2, lvl >= 3, lvl >= 4, lvl >= 5];
+              g.startLevel(lvl, false);
+              g.p1Hero = heroIdx;
+              const h = g.heroes[heroIdx];
+              // Position family in guardian arena
+              g.heroes.forEach((hero, hi) => {
+                hero.pos.set(g.boss.pos.x + (hi - 1.5) * 1.5, g.boss.pos.y, g.boss.pos.z + 5.0);
+                hero.lastSafePos.copy(hero.pos);
+              });
+
+              let elapsed = 0;
+              const dt = 1 / 30;
+              let attackTick = 0;
+              // Competent bot: keeps attacking on a steady human-like cadence (~0.58-0.66s) and hops over danger zones
+              const cadence = 0.56 + (trial % 5) * 0.025;
+              while (!g.boss.dead && elapsed < 130) {
+                if (g.p1Hero !== heroIdx && !h.downed) g.p1Hero = heroIdx;
+                // Keep hero at comfortable combat range from boss
+                const desiredDist = (heroIdx === 1 || heroIdx === 2) ? 6.0 : 2.6;
+                const dx = h.pos.x - g.boss.pos.x;
+                const dz = h.pos.z - g.boss.pos.z;
+                const curDist = Math.hypot(dx, dz) || 1;
+                if (curDist > desiredDist + 1.2 || curDist < desiredDist - 1.0) {
+                  const nx = g.boss.pos.x + (dx / curDist) * desiredDist;
+                  const nz = g.boss.pos.z + (dz / curDist) * desiredDist;
+                  h.pos.x = Math.max(-10, Math.min(10, nx));
+                  h.pos.z = Math.max(g.boss.home.z - 10, Math.min(g.boss.home.z + 10, nz));
+                }
+                // Dodge danger zones by jumping
+                if (g.dangerZones.some((dzObj) => dzObj.elapsed > dzObj.delay * 0.65 && h.pos.distanceTo(dzObj.pos) < dzObj.radius)) {
+                  g.heroJump(h);
+                }
+                attackTick += dt;
+                if (attackTick >= cadence && !h.downed) {
+                  attackTick = 0;
+                  g.heroPrimaryAbility(h);
+                }
+                g.step(dt, dt, false);
+                elapsed += dt;
+              }
+
+              const dur = Number(elapsed.toFixed(2));
+              if (dur < minTime) minTime = dur;
+              if (dur > maxTime) maxTime = dur;
+              if (g.boss.maxContinuousFrozenTime > maxFreezeSeen) maxFreezeSeen = g.boss.maxContinuousFrozenTime;
+              if (g.boss.maxActionGap > maxActGapSeen) maxActGapSeen = g.boss.maxActionGap;
+
+              const minTarget = lvl === 5 ? 60 : 45;
+              const maxTarget = lvl === 5 ? 120 : 90;
+              if (!g.boss.freed || !g.boss.friendly || !g.boss.mesh.visible) {
+                failures.push(`L${lvl + 1} h${heroIdx} t${trial}: guardian not freed & visible`);
+              }
+              if (dur < minTarget || dur > maxTarget) {
+                failures.push(`L${lvl + 1} (${g.boss.type}) h${heroIdx} t${trial}: duration ${dur}s outside [${minTarget}, ${maxTarget}]`);
+              }
+              if (g.boss.maxActionGap > 6.0) {
+                failures.push(`L${lvl + 1} h${heroIdx} t${trial}: maxActionGap ${g.boss.maxActionGap.toFixed(2)}s > 6.0s`);
+              }
+              if (g.boss.maxContinuousFrozenTime > 1.5) {
+                failures.push(`L${lvl + 1} h${heroIdx} t${trial}: maxFreeze ${g.boss.maxContinuousFrozenTime.toFixed(2)}s > 1.5s`);
+              }
+            }
+          }
+        }
+        return {
+          totalFights,
+          minTime,
+          maxTime,
+          maxFreezeSeen: Number(maxFreezeSeen.toFixed(2)),
+          maxActGapSeen: Number(maxActGapSeen.toFixed(2)),
+          failures,
+        };
+      });
+
+      assert.equal(summary.failures.length, 0, `Guardian fight failures (${summary.failures.length}):\n${summary.failures.slice(0, 10).join('\n')}`);
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({
+        name: `${name} (${summary.totalFights} fights: ${summary.minTime}s–${summary.maxTime}s, maxFreeze=${summary.maxFreezeSeen}s, maxGap=${summary.maxActGapSeen}s)`,
+        pass: true,
+      });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
