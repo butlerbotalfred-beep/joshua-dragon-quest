@@ -80,3 +80,10 @@ Base commit: `db7f6b9`
   - 11th load: 60 geometries, 33 textures, 12 shader programs
 - **Result:** PASS (6 passed, 0 failed)
 - **Choices:** Added `disposeObject3D()` in `clearWorld()` and on expiring VFX/projectiles/danger zones; called `o.skeleton.dispose()` on `SkinnedMesh` clones to free `boneTexture`s; replaced per-prop `PointLight`s with two fixed scene-level accent lights (`goalAccentLight`, `bossAccentLight`) and unified fog to `THREE.Fog` so WebGL shader program count stays constant; pooled shared particle geometry and cached particle materials.
+
+### 2.1 Difficulty
+- **Started:** 2026-11-24T16:17:15Z
+- **Finished:** 2026-11-24T16:20:30Z
+- **Checks:** `npm test` — selected difficulty on Title screen, verified saved to localStorage, cycled difficulty from Pause menu, verified idle bot beside a guardian on Easy never loses over 5 minutes (300s), and verified idle bot on Hard is defeated in 5.8s (< 30s).
+- **Result:** PASS (7 passed, 0 failed)
+- **Choices:** Centralized difficulty presets and core tuning constants in `src/config.js`; updated title to "The Royal Dragon Rescue" per `STORY.md`. On Easy, knocked-down heroes bounce back up automatically after 1.8s and never trigger Game Over.

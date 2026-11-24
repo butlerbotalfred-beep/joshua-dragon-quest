@@ -1,10 +1,12 @@
 import { startStaticServer, launchBrowser } from './harness.mjs';
 import { runStage0Tests } from './stage0.test.mjs';
 import { runStage1Tests } from './stage1.test.mjs';
+import { runStage2Tests } from './stage2.test.mjs';
 
 const SUITES = [
   { id: 'stage0', run: runStage0Tests },
   { id: 'stage1', run: runStage1Tests },
+  { id: 'stage2', run: runStage2Tests },
 ];
 
 async function main() {

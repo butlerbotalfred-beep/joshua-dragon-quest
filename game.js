@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { DIFFICULTIES, DIFFICULTY_ORDER, TUNING } from './src/config.js';
 
 // ============================================================================
 // JOSHUA & THE DRAGON QUEST — Wave 2 Enhanced 3D Action-Adventure
@@ -909,6 +910,7 @@ class DragonQuestGame {
     // Game state
     this.mode = 'title';
     this.isCoop = false;
+    this.difficulty = 'easy';
     this.currentLevelIdx = 0;
     this.highestLevel = 0;
     this.completedLevels = new Set();
@@ -961,6 +963,7 @@ class DragonQuestGame {
     this.buildTitleDiorama();
     this.bindUI();
     this.bindInput();
+    this.refreshDifficultyUI();
     this.refreshSaveUI();
     this.loadAllAssets();
 
@@ -985,7 +988,37 @@ class DragonQuestGame {
       }
       if (typeof data.red === 'number') this.inventory.red = data.red;
       if (typeof data.green === 'number') this.inventory.green = data.green;
+      if (data.difficulty && DIFFICULTIES[data.difficulty]) this.difficulty = data.difficulty;
     } catch (_) {}
+  }
+
+  getDifficultyConfig() {
+    return DIFFICULTIES[this.difficulty] || DIFFICULTIES.easy;
+  }
+
+  setDifficulty(diffId, save = true) {
+    if (!DIFFICULTIES[diffId]) return;
+    this.difficulty = diffId;
+    this.refreshDifficultyUI();
+    if (save) this.persistSave();
+  }
+
+  cycleDifficulty() {
+    const idx = DIFFICULTY_ORDER.indexOf(this.difficulty);
+    const next = DIFFICULTY_ORDER[(idx + 1) % DIFFICULTY_ORDER.length];
+    this.setDifficulty(next, true);
+    this.showAlert(`Difficulty: ${DIFFICULTIES[next].label}`, 1.8);
+  }
+
+  refreshDifficultyUI() {
+    const cfg = this.getDifficultyConfig();
+    document.querySelectorAll('.diff-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.diff === this.difficulty);
+    });
+    const pauseDiffBtn = document.getElementById('btn-pause-difficulty');
+    if (pauseDiffBtn) {
+      pauseDiffBtn.textContent = `⚔️ Difficulty: ${cfg.label}`;
+    }
   }
 
   persistSave() {
@@ -997,6 +1030,7 @@ class DragonQuestGame {
         bondedDragons: this.bondedDragons,
         red: this.inventory.red,
         green: this.inventory.green,
+        difficulty: this.difficulty,
       };
       localStorage.setItem('joshua_dragon_quest_save_v1', JSON.stringify(payload));
       this.refreshSaveUI();
@@ -1451,6 +1485,12 @@ class DragonQuestGame {
   // UI BINDINGS & STORY MODAL
   // ============================================================================
   bindUI() {
+    document.querySelectorAll('.diff-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.setDifficulty(btn.dataset.diff, true);
+      });
+    });
+
     const mode1p = document.getElementById('mode-1p');
     const mode2p = document.getElementById('mode-2p');
     mode1p.addEventListener('click', () => {
@@ -1534,6 +1574,7 @@ class DragonQuestGame {
 
     document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
     document.getElementById('btn-resume').addEventListener('click', () => this.togglePause(false));
+    document.getElementById('btn-pause-difficulty').addEventListener('click', () => this.cycleDifficulty());
     document.getElementById('btn-toggle-coop-live').addEventListener('click', () => {
       this.isCoop = !this.isCoop;
       if (this.isCoop && this.p2Hero === this.p1Hero) this.p2Hero = (this.p1Hero + 1) % 4;
@@ -3357,7 +3398,7 @@ class DragonQuestGame {
             if (h.armorTimer > 0) {
               this.spawnFloatingText(h.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), '🛡️ BLOCKED!', '#d8b4fe');
             } else {
-              this.hurtHero(h, dz.damage);
+              this.hurtHero(h, dz.damage, 'boss');
             }
           }
         });
@@ -3542,11 +3583,28 @@ class DragonQuestGame {
       if (h.sprintBoostTimer > 0) moveSpeed *= 1.38;
 
       if (h.downed) {
-        // Knocked out hero lies flat until revived by a standing family member or Red Berry!
+        // Knocked out hero lies flat until revived by a standing family member, Red Berry, or auto-get-up on Easy!
         h.webCocoon.visible = false;
         h.reviveRing.visible = true;
         h.root.position.set(h.pos.x, h.pos.y + 0.25, h.pos.z);
         h.root.rotation.set(Math.PI / 2, h.facing, 0);
+        const diffCfg = this.getDifficultyConfig();
+        if (!diffCfg.canLose) {
+          h.autoGetUpTimer = (h.autoGetUpTimer || 0) + dt;
+          if (h.autoGetUpTimer >= (diffCfg.autoGetUpDelay || 1.8)) {
+            h.downed = false;
+            h.autoGetUpTimer = 0;
+            h.reviveProgress = 0;
+            h.reviveRing.visible = false;
+            h.reviveRing.scale.setScalar(1);
+            h.root.rotation.set(0, h.facing, 0);
+            h.hp = Math.round(h.maxHp * 0.65);
+            h.hurtCd = 2.0;
+            this.spawnParticles(h.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0xffe066, 16);
+            this.spawnFloatingText(h.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), 'UP AGAIN!', '#6effa1');
+            return;
+          }
+        }
         // Check if a standing hero is beside them to revive (1.5s)!
         const helper = this.heroes.find((other) => !other.downed && !other.trappedByWeb && other.pos.distanceTo(h.pos) < 2.6);
         if (helper) {
@@ -3707,16 +3765,49 @@ class DragonQuestGame {
     });
   }
 
-  hurtHero(hero, dmg) {
+  hurtHero(hero, dmg, source = 'enemy') {
     if (!hero || hero.downed || hero.hurtCd > 0 || hero.armorTimer > 0) return;
-    hero.hp = Math.max(0, hero.hp - dmg);
-    hero.hurtCd = 0.85;
+    const diffCfg = this.getDifficultyConfig();
+    const mult = source === 'boss' ? diffCfg.bossDmgMult : source === 'hazard' ? 1.0 : diffCfg.enemyDmgMult;
+    const finalDmg = Math.max(1, Math.round(dmg * mult));
+    hero.hp = Math.max(0, hero.hp - finalDmg);
+    hero.hurtCd = this.difficulty === 'hard' ? 0.55 : 0.85;
     this.audio.sfxHurt();
     this.triggerShake(0.22, 0.15);
     this.spawnParticles(hero.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), 0xff5252, 10);
-    this.spawnFloatingText(hero.pos.clone().add(new THREE.Vector3(0, 2.1, 0)), `-${dmg}`, '#ff6b6b');
+    this.spawnFloatingText(hero.pos.clone().add(new THREE.Vector3(0, 2.1, 0)), `-${finalDmg}`, '#ff6b6b');
 
     if (hero.hp <= 0) {
+      if (!diffCfg.canLose) {
+        // On Easy, heroes NEVER cause a Game Over — they stumble briefly and get right back up!
+        const otherStanding = this.heroes.filter((h) => h !== hero && !h.downed);
+        if (otherStanding.length === 0) {
+          hero.hp = Math.round(hero.maxHp * 0.65);
+          hero.hurtCd = 2.0;
+          this.spawnFloatingText(hero.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), 'UP AGAIN!', '#6effa1');
+          this.updateHUD();
+          return;
+        }
+        hero.downed = true;
+        hero.autoGetUpTimer = 0;
+        hero.reviveProgress = 0;
+        if (hero.trappedByWeb) {
+          hero.trappedByWeb.trappedHeroIdx = -1;
+          hero.trappedByWeb = null;
+          hero.webCocoon.visible = false;
+        }
+        if (hero.index === this.p1Hero) {
+          const next = otherStanding.find((s) => !this.isCoop || s.index !== this.p2Hero) || otherStanding[0];
+          this.p1Hero = next.index;
+        } else if (this.isCoop && hero.index === this.p2Hero) {
+          const next = otherStanding.find((s) => s.index !== this.p1Hero) || otherStanding[0];
+          this.p2Hero = next.index;
+        }
+        this.showAlert(`${hero.def.name} needs a breather!`, 2.0);
+        this.updateHUD();
+        return;
+      }
+
       hero.downed = true;
       hero.reviveProgress = 0;
       if (hero.trappedByWeb) {
@@ -3724,9 +3815,9 @@ class DragonQuestGame {
         hero.trappedByWeb = null;
         hero.webCocoon.visible = false;
       }
-      this.spawnFloatingText(hero.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), '💔 KNOCKED OUT!', '#ff5252');
+      this.spawnFloatingText(hero.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), 'DOWN!', '#ff5252');
 
-      // Check if ALL 4 heroes are downed -> TRUE GAME OVER!
+      // Check if ALL 4 heroes are downed -> GAME OVER (Medium / Hard only)
       const standing = this.heroes.filter((h) => !h.downed);
       if (standing.length === 0) {
         this.mode = 'gameover';
@@ -3744,7 +3835,7 @@ class DragonQuestGame {
         const next = standing.find((s) => s.index !== this.p1Hero) || standing[0];
         this.p2Hero = next.index;
       }
-      this.showAlert(`💔 ${hero.def.name} is DOWN! Stand beside them (1.5s) or eat a Red Berry [R] to revive!`, 3.6);
+      this.showAlert(`${hero.def.name} is down! Revive them!`, 3.0);
       this.updateHUD();
     }
   }
@@ -3764,7 +3855,7 @@ class DragonQuestGame {
             if (h.armorTimer > 0) {
               this.spawnParticles(p.pos, 0xc084fc, 14);
               this.spawnFloatingText(h.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), '🛡️ BLOCKED!', '#d8b4fe');
-            } else this.hurtHero(h, p.damage);
+            } else this.hurtHero(h, p.damage, 'boss');
             hit = true;
             break;
           }
@@ -3924,12 +4015,20 @@ class DragonQuestGame {
     b.mesh.position.set(b.pos.x, b.pos.y + hoverY, b.pos.z);
 
     if (b.swoopTimer > 0) b.swoopTimer -= dt;
-    if (len < 2.75 && (!b.swoopTimer || b.swoopTimer <= 0)) this.hurtHero(target, 15);
+    if (!b.swoopTimer || b.swoopTimer <= 0) {
+      for (const h of this.heroes) {
+        if (!h.downed && h.pos.distanceTo(b.pos) < 3.1) {
+          this.hurtHero(h, 15, 'boss');
+        }
+      }
+    }
 
     const enraged = b.hp < b.maxHp * 0.5;
+    const diffCfg = this.getDifficultyConfig();
     b.attackTimer -= dt;
     if (b.attackTimer <= 0) {
-      b.attackTimer = b.type === 'black_dragon' ? (enraged ? 1.85 : 2.35) : enraged ? 2.15 : 2.75;
+      const baseInterval = b.type === 'black_dragon' ? (enraged ? 1.85 : 2.35) : enraged ? 2.15 : 2.75;
+      b.attackTimer = Math.min(TUNING.bossMaxActInterval, baseInterval * diffCfg.bossAttackIntervalMult);
       b.attackCycle = (b.attackCycle || 0) + 1;
 
       if (b.type === 'bear') {

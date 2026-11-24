@@ -668,11 +668,48 @@ html, body, #game-root {
   color: var(--text-muted);
 }
 
+.difficulty-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+.diff-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.16s;
+}
+
+.diff-btn strong {
+  font-size: 14px;
+  color: var(--gold-bright);
+}
+
+.diff-btn span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.diff-btn.active {
+  border-color: var(--gold);
+  background: rgba(245, 201, 83, 0.18);
+  box-shadow: 0 0 18px rgba(245, 201, 83, 0.28);
+}
+
 .mode-selector {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin: 20px 0 18px;
+  margin: 0 0 18px;
 }
 
 .mode-btn {

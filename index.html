@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Joshua &amp; The Dragon Quest</title>
+  <title>The Royal Dragon Rescue</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -176,8 +176,23 @@
     <section id="title-screen" class="overlay-screen">
       <div class="title-card">
         <div class="title-crest">🐉 ✨ 👑</div>
-        <h1 class="game-title">JOSHUA &amp; THE<br /><span>DRAGON QUEST</span></h1>
-        <p class="game-subtitle">A Royal Family Action-Adventure &amp; Puzzle Platformer</p>
+        <h1 class="game-title">THE ROYAL<br /><span>DRAGON RESCUE</span></h1>
+        <p class="game-subtitle">A Royal Family Adventure</p>
+
+        <div class="difficulty-selector" role="group" aria-label="Difficulty">
+          <button id="diff-easy" class="diff-btn active" data-diff="easy">
+            <strong>Easy</strong>
+            <span>Never lose</span>
+          </button>
+          <button id="diff-medium" class="diff-btn" data-diff="medium">
+            <strong>Medium</strong>
+            <span>Balanced</span>
+          </button>
+          <button id="diff-hard" class="diff-btn" data-diff="hard">
+            <strong>Hard</strong>
+            <span>Challenge</span>
+          </button>
+        </div>
 
         <div class="mode-selector">
           <button id="mode-1p" class="mode-btn active">
@@ -260,11 +275,12 @@
         <h2>⏸️ Royal Pause</h2>
         <div class="pause-controls-summary" id="pause-controls-text"></div>
         <div class="pause-btn-stack">
-          <button id="btn-resume" class="primary-btn">▶ Resume Quest</button>
-          <button id="btn-toggle-coop-live" class="secondary-btn">👥 Switch 1P / 2P Mode</button>
-          <button id="btn-restart-level" class="secondary-btn">🔄 Restart Current Level</button>
+          <button id="btn-resume" class="primary-btn">▶ Resume</button>
+          <button id="btn-pause-difficulty" class="secondary-btn">⚔️ Difficulty: Easy</button>
+          <button id="btn-toggle-coop-live" class="secondary-btn">👥 Switch 1P / 2P</button>
+          <button id="btn-restart-level" class="secondary-btn">🔄 Restart Level</button>
           <button id="btn-pause-levels" class="secondary-btn">🗺️ Level Select</button>
-          <button id="btn-back-title" class="secondary-btn">🏰 Return to Title</button>
+          <button id="btn-back-title" class="secondary-btn">🏰 Title Screen</button>
         </div>
       </div>
     </section>
