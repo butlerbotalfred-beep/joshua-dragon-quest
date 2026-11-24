@@ -5,7 +5,7 @@ Branch `build/claude`. All times are UTC. This log follows `docs/BUILD_PLAN.md`.
 ## Milestone 0.1 Set up
 
 - Started: 2026-11-24 14:08
-- Finished: 2026-11-24 15:55
+- Finished: 2026-11-24 15:51
 - What I checked: the branch exists and holds `docs/BUILD_PLAN.md`, `docs/STORY.md` and `docs/AUDIT.md`. Result: pass.
 - Start point: `build/claude` starts at commit `db7f6b9` on `main`, the merge of the pull request that added the three documents and the ten music tracks. Its files are identical to commit `deba559`, where I first branched before the merge landed.
 - Time note: I read the plan, the story, the audit and all of `game.js` between 14:08 and 14:15. The session then stopped and was restarted at 15:50, so about 95 minutes of this milestone were not working time.
@@ -17,8 +17,8 @@ Branch `build/claude`. All times are UTC. This log follows `docs/BUILD_PLAN.md`.
 
 ## Milestone 0.2 Test harness
 
-- Started: 2026-11-24 15:55
-- Finished: 2026-11-24 16:02
+- Started: 2026-11-24 15:51
+- Finished: 2026-11-24 15:54
 - What I built: `npm test` runs `tests/harness/run.js`, which runs every `tests/*.test.js` file with Node's built-in test runner. Each test starts a local file server (`tests/harness/server.js`), opens the game in headless Chromium through Playwright (`tests/harness/browser.js`) and steps the game with `game.advance(seconds)`. The harness also gives the page two virtual Xbox controllers.
 - What I checked: `tests/01-smoke.test.js` starts Level 1, runs 60 seconds of game time and asserts there are no console errors, page errors or failed requests. Result: pass.
 
@@ -30,8 +30,8 @@ Branch `build/claude`. All times are UTC. This log follows `docs/BUILD_PLAN.md`.
 
 ## Milestone 0.3 Baseline
 
-- Started: 2026-11-24 16:02
-- Finished: 2026-11-24 16:08
+- Started: 2026-11-24 15:54
+- Finished: 2026-11-24 15:56
 - How: `tests/archive/baseline-prototype.js`, run against the prototype with only the 0.2 changes.
 
 | Number | Measured | The audit said |
