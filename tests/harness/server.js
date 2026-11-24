@@ -13,7 +13,7 @@ const TYPES = {
   '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
 };
 
-function startServer({ port = 0, quiet = true } = {}) {
+function startServer({ port = 0, quiet = true, host = '127.0.0.1' } = {}) {
   const log = []; // { url, bytes, status }
   const server = http.createServer((req, res) => {
     const urlPath = decodeURIComponent(req.url.split('?')[0]);
@@ -48,7 +48,7 @@ function startServer({ port = 0, quiet = true } = {}) {
     });
   });
   return new Promise((resolve) => {
-    server.listen(port, '127.0.0.1', () => {
+    server.listen(port, host, () => {
       const actual = server.address().port;
       resolve({
         server, log, root: ROOT, port: actual, url: `http://127.0.0.1:${actual}`,
