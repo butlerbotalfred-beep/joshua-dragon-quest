@@ -919,6 +919,8 @@ class DragonQuestGame {
     this.levelGoalTriggered = false;
     this.alertTimer = 0;
     this.clock = new THREE.Clock();
+    this.simTime = 0;
+    this.manualStepping = false;
     this.keys = {};
     this.storyCallback = null;
 
@@ -3130,7 +3132,7 @@ class DragonQuestGame {
   }
 
   updateMovingPlatformsAndPuzzles(dt) {
-    const t = this.clock.elapsedTime;
+    const t = this.simTime;
     // Gliding canopy platforms carry standing heroes!
     this.movingPlatforms.forEach((mp) => {
       mp.prevX = mp.x;
@@ -3210,8 +3212,9 @@ class DragonQuestGame {
   }
 
   update(dt) {
+    this.simTime += dt;
     this.pollGamepads();
-    const t = this.clock.elapsedTime;
+    const t = this.simTime;
     if (this.mode === 'cutscene') {
       this.updateCutscene(dt);
       return;
@@ -3358,7 +3361,7 @@ class DragonQuestGame {
   }
 
   updateHeroes(dt) {
-    const t = this.clock.elapsedTime;
+    const t = this.simTime;
     const leader = this.heroes[this.p1Hero];
 
     this.heroes.forEach((h, idx) => {
@@ -3639,7 +3642,7 @@ class DragonQuestGame {
   }
 
   updateEnemies(dt) {
-    const t = this.clock.elapsedTime;
+    const t = this.simTime;
     this.enemies.forEach((en) => {
       if (en.dead) return;
       // Update 3D enemy HP bar + Ice Cube visual!
@@ -3702,7 +3705,7 @@ class DragonQuestGame {
   updateBoss(dt) {
     const b = this.boss;
     if (!b || b.dead) return;
-    const t = this.clock.elapsedTime;
+    const t = this.simTime;
     const target = this.heroes[this.p1Hero];
     const dist = target.pos.distanceTo(b.pos);
 
@@ -3822,7 +3825,7 @@ class DragonQuestGame {
   }
 
   checkPickupsAndObjectives(dt) {
-    const t = this.clock.elapsedTime;
+    const t = this.simTime;
     const activeHeroes = this.isCoop ? [this.heroes[this.p1Hero], this.heroes[this.p2Hero]] : [this.heroes[this.p1Hero]];
 
     this.bushes.forEach((bush) => {
@@ -4021,8 +4024,18 @@ class DragonQuestGame {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
+  step(seconds, dt = 1 / 60, doRender = true) {
+    this.manualStepping = true;
+    const steps = Math.max(1, Math.round(seconds / dt));
+    for (let i = 0; i < steps; i++) {
+      this.update(dt);
+    }
+    if (doRender) this.renderer.render(this.scene, this.camera);
+  }
+
   animate() {
     requestAnimationFrame(() => this.animate());
+    if (this.manualStepping) return;
     const dt = Math.min(0.05, this.clock.getDelta());
     this.update(dt);
     this.renderer.render(this.scene, this.camera);

@@ -2,3 +2,5 @@
 Thumbs.db
 assets/jobs/
 *.log
+node_modules/
+
