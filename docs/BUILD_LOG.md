@@ -270,6 +270,36 @@ This is my guess at a six-year-old, not a measurement of one. The first real mea
 - The other family members are not moved for the hatching scene; the camera stays on Joshua and the egg, and Michael speaks from beside them.
 - Level 2 has no opening line of its own in the story draft, so it starts straight into play. (The Keeper's news between levels belongs to milestone 4.2.)
 
+## Done ahead of their stage, because they do not wait on the playtest
+
+The plan says to carry on with every milestone that does not depend on a pause. Stage 5 waits for Joshua's playtest of Level 2 (3.4). These two do not.
+
+### Milestone 7.1 Recording script
+
+- Started: 2026-11-24 18:20. Finished: 18:26 (its check passed on its own), and again in the whole-suite run at 18:59.
+- What I built: `docs/recording-script.md`, written by `node tools/recording-script.mjs` from `data/dialogue.json`. One section for each speaker, the family first. Each line has its number, the file name the recording must have, where in the story it is said, the words, and how to say it where the story draft says how. A short "How to record" list is at the top.
+- What I checked: the file is exactly what the tool prints today; every speaker in the game has a section and no one else does; the number of lines under each speaker equals that speaker's lines in `data/dialogue.json` (Joshua 6, Daniel 7, Vanessa 6, Michael 5, Renee 1, the Keeper 48, the Narrator 1, the Great Black Dragon 5; 79 in all); each row's words and file name are the data file's; every named file exists; the four family voices are marked as stand-ins and nobody else is. Result: pass.
+- Choice the plan did not specify: for a grown-up, one recording of their whole list is enough to copy the voice in Fish Audio, so the script says so. Line-by-line recordings work too.
+
+### Milestone 6.1 Light first load (for everything built so far)
+
+- Started: 2026-11-24 18:27. Finished: 18:59.
+- Why now: every model came with pictures 2048 pixels on a side, 5 to 8 MB a model. Level 2 asked for about 100 MB of models. That is slow over home Wi-Fi and may be more than an iPad's browser will hold, and Joshua is about to play it on one.
+- What I built: `tools/shrink-models.mjs`. For every model the game uses it keeps the original, untouched, in `originals/3d/` and writes a lighter copy where the game loads it from, in `assets/3d/`:
+  - no picture on a model is larger than 1024 by 1024;
+  - each hero's "run" file keeps only the running movement, because the game takes the body and its pictures from the "walk" file and was downloading them twice;
+  - the 85 files beside the models that the game never asks for (preview pictures, the model makers' notes, bodies without movements) are moved to `originals/3d/` as well. Moved, not deleted. This is part of 6.2, done here because those files held the largest pictures.
+- The models went from 160.3 MB to 18.0 MB. Nothing was redrawn or deleted.
+- What I checked (`tests/60-small-smooth.test.js`):
+  - **Textures.** Every picture in the shipped game, inside models or beside them, is measured: 66 pictures in 36 models, the largest 1024 pixels on a side. Result: pass.
+  - **Nothing but the pictures changed.** Each lighter model is compared with its original in `originals/3d/`: the same bones, the same meshes byte for byte (412 pieces of shape data), the same movements byte for byte (528 movement tracks). A run file has its movement and no body. Result: pass.
+  - **First load.** The server adds up what it sends before the title screen: 3.15 MB in 24 requests (the title music is 2.07 MB of it). Target 25 MB. Result: pass.
+  - **Entering a level.** A new visit, then into the level and five seconds of play: Treetop Canopy asks for 11.59 MB in 20 files, 19 of them models. Target 20 MB. Result: pass.
+  - I also looked at the same three views of Level 2 before and after. At the size the game draws them I could not tell the pictures apart.
+- The whole suite on the lighter models, 18:55 to 18:59: 43 checks, 43 passed.
+- This milestone is finished for the places that exist today. Its checks run on every place there is, so they will measure the prologue, the festival and Levels 1, 3, 4, 5 and 6 as each arrives. I will write the final numbers here after Stage 5.
+- Choices the plan did not specify: "the shipped folder" means what a player's device is sent: `index.html`, `game.js`, `styles.css`, `src/`, `data/`, `vendor/` and `assets/`. JPEG pictures are saved at ffmpeg quality 3 (near the top of its scale). The old prototype in `tests/archive/prototype/` loaded some of the moved files; it is kept as a record and is not meant to run.
+
 ## Waiting on Michael
 
 - Nothing at the moment.
