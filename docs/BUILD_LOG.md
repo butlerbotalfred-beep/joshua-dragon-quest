@@ -133,3 +133,19 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage2` — waited at each gate in Level 1; verified no hint fired before 20s, and after 20s without progress the Keeper spoke a hint naming the required family member (`Daniel`, `Michael`, `Vanessa`) with captions strictly <= 8 words.
 - **Result:** PASS (7 passed, 0 failed in stage2)
 - **Choices:** Added `#speech-caption` HUD bar with automatic <= 8-word chunking (`chunkCaptionWords`), progress tracking via `furthestZ`/gate opens/boss frees, and `updateKeeperHints()` triggering after 20s without progress.
+
+### 2.8 Speech
+- **Started:** 2026-11-24T16:40:25Z
+- **Finished:** 2026-11-25T02:33:40Z
+- **Fish Audio Voices Chosen (locked once for the entire build):**
+  - **Keeper:** `5e79e8f5d2b345f98baa8c83c947532d` (*Paddington—British narrator, deep and warm*)
+  - **Narrator:** `5e79e8f5d2b345f98baa8c83c947532d` (*Paddington—British narrator, deep and warm* — same voice as Keeper per `STORY.md` decision: "Narrator: The Keeper of the Forest")
+  - **Renee:** `fb4f0464f53e4f939d00a7c20d17d143` (*Grandma* — kindly older British female voice)
+  - **Great Black Dragon:** `e3cd384158934cc9a01029cd7d278634` (*Laura*, Fish Official — directed with `drama-3` grand & grumpy / lonely tags)
+  - **Joshua (stand-in until Stage 7.2):** `51987d6290b54b299b3feba6a92c664d` (*Bluey*)
+  - **Daniel (stand-in until Stage 7.2):** `b9011feb3c6f46ddaeb90043fab0eb4a` (*Kid*)
+  - **Vanessa (stand-in until Stage 7.2):** `933563129e564b19a115bedd57b7406a` (*Sarah*, Fish Official)
+  - **Michael (stand-in until Stage 7.2):** `e686ae649ee44f219a108aacba206c1a` (*calm storyteller male*)
+- **Checks:** `npm test stage2` — compared `data/dialogue.json` against every quoted line in `docs/STORY.md` (all 44 story lines matched word for word), verified all 52 Fish Audio speech MP3 files and 17 Fish Audio SFX MP3 files exist on disk, verified all caption chunks and live `#caption-words` never exceed 8 words.
+- **Result:** PASS (8 passed, 0 failed in stage2)
+- **Choices:** Replaced all Web Audio synth SFX oscillators with trimmed Fish Audio sound effects (`assets/audio/sfx/`), switched music engine to on-demand streaming Suno tracks with 600ms cross-fades per `assets/audio/README.md`, and trimmed modal/HUD text to obey the <=8-word rule.

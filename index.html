@@ -202,35 +202,34 @@
 
         <div class="mode-selector">
           <button id="mode-1p" class="mode-btn active">
-            <strong>1 Player Solo</strong>
-            <span>Instant Hot-Swap Between All 4 Heroes</span>
+            <strong>1 Player</strong>
+            <span>Swap 4 heroes</span>
           </button>
           <button id="mode-2p" class="mode-btn">
-            <strong>2 Players Local Co-Op</strong>
-            <span>Split Control of the Royal Roster</span>
+            <strong>2 Players</strong>
+            <span>Play together</span>
           </button>
         </div>
 
         <div class="title-cta-row">
-          <button id="btn-continue-save" class="primary-btn hidden">▶ Continue Quest</button>
-          <button id="btn-start-story" class="primary-btn">⚔️ Start New Quest</button>
-          <button id="btn-open-levels" class="secondary-btn">🗺️ Level Select</button>
+          <button id="btn-continue-save" class="primary-btn hidden">▶ Continue</button>
+          <button id="btn-start-story" class="primary-btn">⚔️ Play Story</button>
+          <button id="btn-open-levels" class="secondary-btn">🗺️ Levels</button>
         </div>
         <div id="save-summary-pill" class="save-pill hidden"></div>
 
         <div id="asset-status-pill" class="asset-status">
-          Loading 3D Royal Assets &amp; World...
+          Loading world...
         </div>
 
         <div class="title-controls-grid">
           <div>
-            <h4>1P Controls</h4>
-            <p><kbd>WASD</kbd> / <kbd>Arrows</kbd> Move &bull; <kbd>Space</kbd> Jump &bull; <kbd>J</kbd>/<kbd>Click</kbd> Ability &bull; <kbd>K</kbd>/<kbd>Shift</kbd> Dragon Special &bull; <kbd>1–4</kbd>/<kbd>Q</kbd> Swap Hero &bull; <kbd>R</kbd>/<kbd>G</kbd> Berries</p>
+            <h4>Xbox Controller</h4>
+            <p>Stick Move &bull; A Jump &bull; X Gift &bull; Y Swap</p>
           </div>
           <div>
-            <h4>2P Co-Op Controls</h4>
-            <p><strong>P1:</strong> <kbd>WASD</kbd> Move, <kbd>Space</kbd> Jump, <kbd>F</kbd> Ability, <kbd>Shift</kbd> Special, <kbd>Q</kbd> Swap<br />
-               <strong>P2:</strong> <kbd>Arrows</kbd> Move, <kbd>/</kbd> Jump, <kbd>L</kbd> Ability, <kbd>;</kbd> Special, <kbd>P</kbd> Swap</p>
+            <h4>Keyboard</h4>
+            <p>WASD Move &bull; Space Jump &bull; J Gift &bull; 1–4 Swap</p>
           </div>
         </div>
       </div>
@@ -239,12 +238,12 @@
     <!-- LEVEL SELECT MODAL -->
     <section id="level-select-screen" class="overlay-screen hidden">
       <div class="modal-card wide-modal">
-        <h2>🗺️ Kingdom Map — Six Levels</h2>
-        <p class="modal-desc">Choose any biome to play immediately (prior baby dragon bonds are automatically equipped for later levels).</p>
+        <h2>🗺️ Choose a Level</h2>
+        <p class="modal-desc">Pick any adventure.</p>
         <div id="level-select-grid" class="level-grid"></div>
         <div class="title-cta-row">
           <button id="btn-close-levels" class="secondary-btn">← Back</button>
-          <button id="btn-reset-save" class="secondary-btn">🗑️ Reset Saved Progress</button>
+          <button id="btn-reset-save" class="secondary-btn">🗑️ Reset Save</button>
         </div>
       </div>
     </section>
@@ -264,13 +263,13 @@
     <!-- GAME OVER MODAL -->
     <section id="gameover-overlay" class="overlay-screen hidden">
       <div class="story-card gameover-card">
-        <div class="story-badge gameover-badge">DEFEAT</div>
-        <div class="story-art">💔🐉</div>
-        <h2>The Royal Family Was Overwhelmed!</h2>
-        <p id="gameover-body">All four heroes were knocked out! Gather Red Berries to heal or revive fallen family members before everyone goes down.</p>
+        <div class="story-badge gameover-badge">TRY AGAIN</div>
+        <div class="story-art">💛🐉</div>
+        <h2>Time to Rest!</h2>
+        <p id="gameover-body">Everyone needs a breather. Try again!</p>
         <div class="title-cta-row">
-          <button id="btn-retry-gameover" class="primary-btn">🔄 Retry Level</button>
-          <button id="btn-levels-gameover" class="secondary-btn">🗺️ Level Select</button>
+          <button id="btn-retry-gameover" class="primary-btn">🔄 Try Again</button>
+          <button id="btn-levels-gameover" class="secondary-btn">🗺️ Levels</button>
         </div>
       </div>
     </section>

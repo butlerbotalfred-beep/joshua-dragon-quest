@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { openGame, stepGame } from './harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { openGame, stepGame, REPO_ROOT } from './harness.mjs';
 
 export async function runStage2Tests(browser, baseUrl) {
   const results = [];
@@ -626,6 +628,76 @@ export async function runStage2Tests(browser, baseUrl) {
 
       assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
       results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
+  // Milestone 2.8: Speech data matches docs/STORY.md word for word, all Fish Audio MP3s exist, captions <= 8 words
+  {
+    const name = '2.8: data/dialogue.json matches STORY.md word for word, all Fish Audio MP3s exist, captions <=8 words';
+    const storyMd = fs.readFileSync(path.join(REPO_ROOT, 'docs/STORY.md'), 'utf8');
+    const dialoguePath = path.join(REPO_ROOT, 'data/dialogue.json');
+    assert.ok(fs.existsSync(dialoguePath), 'data/dialogue.json must exist');
+    const dialogue = JSON.parse(fs.readFileSync(dialoguePath, 'utf8'));
+
+    // Extract every quoted dialogue line under "## Level by level" in docs/STORY.md
+    const levelSection = storyMd.split('## Level by level')[1].split('## Still open')[0];
+    const storyQuotes = [];
+    for (const line of levelSection.split('\n')) {
+      if (!line.trim().startsWith('- **')) continue;
+      if (line.includes('**Each one\'s moment:**')) continue;
+      const m = line.match(/"([^"]+)"/);
+      if (m) storyQuotes.push(m[1]);
+    }
+    assert.ok(storyQuotes.length >= 35, `Expected >= 35 spoken lines in STORY.md, found ${storyQuotes.length}`);
+
+    const dialogueTexts = new Set(dialogue.lines.map((l) => l.text));
+    const missing = storyQuotes.filter((q) => !dialogueTexts.has(q));
+    assert.equal(missing.length, 0, `Lines from STORY.md missing verbatim in data/dialogue.json:\n${missing.join('\n')}`);
+
+    // Verify required cast voices are defined
+    for (const role of ['Keeper', 'Renee', 'Great Black Dragon', 'Narrator', 'Joshua', 'Daniel', 'Vanessa', 'Michael']) {
+      assert.ok(dialogue.voices[role]?.fishVoiceId, `Voice missing for ${role}`);
+    }
+
+    // Verify every dialogue line has an existing non-empty MP3 sound file on disk
+    const missingAudio = [];
+    for (const entry of dialogue.lines) {
+      const fullPath = path.join(REPO_ROOT, entry.audio);
+      if (!fs.existsSync(fullPath) || fs.statSync(fullPath).size < 1000) {
+        missingAudio.push(`${entry.id} (${entry.audio})`);
+      }
+    }
+    assert.equal(missingAudio.length, 0, `Missing or empty Fish Audio MP3 files:\n${missingAudio.join('\n')}`);
+
+    // Verify live game caption chunking never shows more than 8 words at once
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const maxWordsSeen = await page.evaluate(async () => {
+        const g = window.game;
+        await g.dialogue.load();
+        let maxW = 0;
+        for (const entry of g.dialogue.entries.values()) {
+          const chunks = g.chunkCaptionWords(entry.text, 8);
+          for (const ch of chunks) {
+            const wc = ch.trim().split(/\s+/).filter(Boolean).length;
+            if (wc > maxW) maxW = wc;
+          }
+        }
+        // Also test live showCaption with the longest line (Narrator closing)
+        const longest = g.dialogue.get('fest_narrator_close');
+        g.showCaption(longest.speaker, longest.text, 20);
+        const liveText = document.getElementById('caption-words')?.textContent || '';
+        const liveWc = liveText.trim().split(/\s+/).filter(Boolean).length;
+        return { maxW, liveWc, loadedCount: g.dialogue.entries.size };
+      });
+      assert.ok(maxWordsSeen.loadedCount >= 45, `DialogueSystem loaded ${maxWordsSeen.loadedCount} lines`);
+      assert.ok(maxWordsSeen.maxW <= 8, `Caption chunk exceeded 8 words: ${maxWordsSeen.maxW}`);
+      assert.ok(maxWordsSeen.liveWc > 0 && maxWordsSeen.liveWc <= 8, `Live caption exceeded 8 words: ${maxWordsSeen.liveWc}`);
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name: `${name} (${storyQuotes.length} story lines + ${dialogue.lines.length} total MP3s verified)`, pass: true });
     } finally {
       await session.close();
     }

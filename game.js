@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { DIFFICULTIES, DIFFICULTY_ORDER, GUARDIAN_HP, HERO_COMBAT, TUNING } from './src/config.js';
+import { DialogueSystem } from './src/dialogue.js';
 
 // ============================================================================
 // JOSHUA & THE DRAGON QUEST — Wave 2 Enhanced 3D Action-Adventure
@@ -425,130 +426,164 @@ class TextureFactory {
 }
 
 // ============================================================================
-// AUDIO ENGINE (Suno Take 1 MP3 + Web Audio SFX)
+// AUDIO ENGINE (Supplied Suno Streaming Music + Fish Audio SFX)
 // ============================================================================
+const MUSIC_TRACKS = {
+  title: { url: 'assets/audio/main_theme.mp3', loop: true },
+  prologue: { url: 'assets/audio/prologue_festival_morning.mp3', loop: true },
+  level0: { url: 'assets/audio/level1_great_woods.mp3', loop: true },
+  level1: { url: 'assets/audio/level2_treetop_canopy.mp3', loop: true },
+  level2: { url: 'assets/audio/level3_scorched_caverns.mp3', loop: true },
+  level3: { url: 'assets/audio/level4_frostpeak_ridge.mp3', loop: true },
+  level4: { url: 'assets/audio/level5_craglands.mp3', loop: true },
+  level5: { url: 'assets/audio/level6_beneath_the_castle.mp3', loop: true },
+  boss: { url: 'assets/audio/guardian_encounter.mp3', loop: true },
+  hatching: { url: 'assets/audio/hatching.mp3', loop: false },
+  festival: { url: 'assets/audio/ending_festival.mp3', loop: true },
+};
+
+const SFX_FILES = {
+  jump: 'assets/audio/sfx/sfx_jump.mp3',
+  speed: 'assets/audio/sfx/sfx_speed.mp3',
+  fire: 'assets/audio/sfx/sfx_fire.mp3',
+  inferno: 'assets/audio/sfx/sfx_inferno.mp3',
+  ice: 'assets/audio/sfx/sfx_ice.mp3',
+  bridge: 'assets/audio/sfx/sfx_bridge.mp3',
+  smash: 'assets/audio/sfx/sfx_smash.mp3',
+  armor: 'assets/audio/sfx/sfx_armor.mp3',
+  swap: 'assets/audio/sfx/sfx_swap.mp3',
+  berry: 'assets/audio/sfx/sfx_berry.mp3',
+  gold_berry: 'assets/audio/sfx/sfx_gold_berry.mp3',
+  web_trap: 'assets/audio/sfx/sfx_web_trap.mp3',
+  hit: 'assets/audio/sfx/sfx_hit.mp3',
+  hurt: 'assets/audio/sfx/sfx_hurt.mp3',
+  victory: 'assets/audio/sfx/sfx_victory.mp3',
+  dragon_chirp: 'assets/audio/sfx/dragon_chirp.mp3',
+  dragon_chorus: 'assets/audio/sfx/dragon_chorus.mp3',
+};
+
 class AudioSystem {
   constructor() {
-    this.ctx = null;
     this.muted = false;
-    this.bgAudioEl = null;
-    this.hasExternalMusic = false;
-    this.musicTimer = null;
-    this.musicMode = 'overworld';
-    this.step = 0;
+    this.initialized = false;
+    this.currentTrackKey = null;
+    this.activeMusicEl = null;
+    this.musicMode = 'title';
+    this.levelTrackKey = 'level0';
+    this.sfxCache = new Map();
+    this.targetVolume = 0.34;
+    this.fadeInterval = null;
   }
 
   init() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
+    this.initialized = true;
+    if (!this.currentTrackKey) {
+      this.playTrack('title');
+    } else if (this.activeMusicEl && !this.muted && this.activeMusicEl.paused) {
+      this.activeMusicEl.play().catch(() => {});
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
-    this.tryLoadExternalTheme();
   }
 
-  tryLoadExternalTheme() {
-    if (this.bgAudioEl) {
-      if (!this.muted && this.bgAudioEl.paused) this.bgAudioEl.play().catch(() => {});
+  playTrack(trackKey) {
+    const spec = MUSIC_TRACKS[trackKey];
+    if (!spec) return;
+    if (this.currentTrackKey === trackKey && this.activeMusicEl) {
+      if (!this.muted && this.activeMusicEl.paused && this.initialized) {
+        this.activeMusicEl.play().catch(() => {});
+      }
       return;
     }
-    const audio = new Audio('assets/audio/main_theme.mp3');
-    audio.loop = true;
-    audio.volume = 0.34;
-    audio.addEventListener('error', () => {
-      this.hasExternalMusic = false;
-      this.startSynthMusicLoop();
-    }, { once: true });
-    this.bgAudioEl = audio;
-    this.hasExternalMusic = true;
-    if (!this.muted) audio.play().catch(() => {});
+    this.currentTrackKey = trackKey;
+    if (!this.initialized) return;
+
+    const outgoing = this.activeMusicEl;
+    const incoming = new Audio(spec.url);
+    incoming.loop = spec.loop;
+    incoming.preload = 'auto';
+    incoming.muted = this.muted;
+    incoming.volume = 0.01;
+    this.activeMusicEl = incoming;
+    if (!this.muted) incoming.play().catch(() => {});
+
+    // Smooth 600ms cross-fade between Suno tracks
+    if (this.fadeInterval) clearInterval(this.fadeInterval);
+    let step = 0;
+    const steps = 12;
+    this.fadeInterval = setInterval(() => {
+      step++;
+      const t = Math.min(1, step / steps);
+      if (this.activeMusicEl === incoming) {
+        incoming.volume = this.targetVolume * t;
+      }
+      if (outgoing) {
+        outgoing.volume = Math.max(0, this.targetVolume * (1 - t));
+      }
+      if (step >= steps) {
+        clearInterval(this.fadeInterval);
+        this.fadeInterval = null;
+        if (outgoing) {
+          try { outgoing.pause(); outgoing.src = ''; } catch (_) {}
+        }
+      }
+    }, 50);
+  }
+
+  setLevelTrack(levelIdx) {
+    this.levelTrackKey = `level${Math.max(0, Math.min(5, levelIdx))}`;
+    this.playTrack(this.levelTrackKey);
   }
 
   setMusicMode(mode) {
     this.musicMode = mode;
-    if (this.hasExternalMusic && this.bgAudioEl) {
-      this.bgAudioEl.playbackRate = mode === 'boss' ? 1.07 : 1.0;
-    }
+    if (mode === 'boss') this.playTrack('boss');
+    else if (mode === 'festival') this.playTrack('festival');
+    else if (mode === 'prologue') this.playTrack('prologue');
+    else if (mode === 'hatching') this.playTrack('hatching');
+    else if (mode === 'title') this.playTrack('title');
+    else this.playTrack(this.levelTrackKey || 'title');
   }
 
   toggleMute() {
     this.muted = !this.muted;
-    if (this.bgAudioEl) this.bgAudioEl.muted = this.muted;
+    if (this.activeMusicEl) this.activeMusicEl.muted = this.muted;
     return this.muted;
   }
 
-  startSynthMusicLoop() {
-    if (this.musicTimer) return;
-    const notes = [392, 493.88, 587.33, 659.25, 587.33, 493.88, 440, 523.25];
-    this.musicTimer = setInterval(() => {
-      if (this.muted || !this.ctx || this.ctx.state !== 'running' || this.hasExternalMusic) return;
-      const freq = notes[this.step++ % notes.length];
-      this.playTone(freq, freq, 0.32, 'triangle', 0.045);
-    }, 350);
+  playSfx(key, vol = 0.55) {
+    if (this.muted || !this.initialized) return;
+    const url = SFX_FILES[key];
+    if (!url) return;
+    try {
+      let base = this.sfxCache.get(key);
+      if (!base) {
+        base = new Audio(url);
+        base.preload = 'auto';
+        this.sfxCache.set(key, base);
+      }
+      const inst = base.cloneNode(true);
+      inst.volume = vol;
+      inst.play().catch(() => {});
+    } catch (_) {}
   }
 
-  playTone(freq, endFreq, dur, type = 'triangle', vol = 0.14) {
-    if (this.muted) return;
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
-    }
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-    if (endFreq && endFreq !== freq) {
-      osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + dur);
-    }
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + dur + 0.02);
-  }
-
-  sfxJump() { this.playTone(320, 620, 0.14, 'triangle', 0.13); }
-  sfxSpeed() { this.playTone(480, 980, 0.2, 'sine', 0.11); }
-  sfxFire() { this.playTone(260, 110, 0.22, 'sawtooth', 0.13); }
-  sfxInferno() { this.playTone(210, 65, 0.36, 'sawtooth', 0.18); }
-  sfxIce() { this.playTone(880, 1380, 0.18, 'sine', 0.12); }
-  sfxBridge() {
-    this.playTone(620, 930, 0.15, 'triangle', 0.13);
-    setTimeout(() => this.playTone(930, 1240, 0.22, 'sine', 0.13), 100);
-  }
-  sfxSmash() { this.playTone(140, 48, 0.26, 'square', 0.17); }
-  sfxArmor() {
-    this.playTone(300, 600, 0.2, 'triangle', 0.14);
-    setTimeout(() => this.playTone(600, 900, 0.24, 'sine', 0.13), 90);
-  }
-  sfxSwap() { this.playTone(520, 740, 0.09, 'sine', 0.09); }
-  sfxBerry() {
-    this.playTone(580, 880, 0.11, 'sine', 0.12);
-    setTimeout(() => this.playTone(880, 1170, 0.12, 'sine', 0.11), 70);
-  }
-  sfxGoldBerry() {
-    [523, 659, 784, 1046].forEach((f, i) =>
-      setTimeout(() => this.playTone(f, f * 1.03, 0.16, 'triangle', 0.14), i * 75)
-    );
-  }
-  sfxWebTrap() { this.playTone(440, 260, 0.22, 'square', 0.11); }
-  sfxHit() { this.playTone(190, 95, 0.12, 'sawtooth', 0.14); }
-  sfxHurt() { this.playTone(230, 120, 0.18, 'square', 0.14); }
-  sfxHatch() {
-    [392, 494, 587, 784, 988, 1175].forEach((f, i) =>
-      setTimeout(() => this.playTone(f, f * 1.02, 0.22, 'triangle', 0.15), i * 95)
-    );
-  }
-  sfxVictory() {
-    [523, 659, 784, 1046, 784, 1046].forEach((f, i) =>
-      setTimeout(() => this.playTone(f, f, 0.24, 'triangle', 0.15), i * 120)
-    );
-  }
+  sfxJump() { this.playSfx('jump', 0.45); }
+  sfxSpeed() { this.playSfx('speed', 0.5); }
+  sfxFire() { this.playSfx('fire', 0.52); }
+  sfxInferno() { this.playSfx('inferno', 0.62); }
+  sfxIce() { this.playSfx('ice', 0.5); }
+  sfxBridge() { this.playSfx('bridge', 0.58); }
+  sfxSmash() { this.playSfx('smash', 0.58); }
+  sfxArmor() { this.playSfx('armor', 0.55); }
+  sfxSwap() { this.playSfx('swap', 0.42); }
+  sfxBerry() { this.playSfx('berry', 0.52); }
+  sfxGoldBerry() { this.playSfx('gold_berry', 0.6); }
+  sfxWebTrap() { this.playSfx('web_trap', 0.5); }
+  sfxHit() { this.playSfx('hit', 0.45); }
+  sfxHurt() { this.playSfx('hurt', 0.5); }
+  sfxHatch() { this.playTrack('hatching'); }
+  sfxVictory() { this.playSfx('victory', 0.6); }
+  sfxDragonChirp() { this.playSfx('dragon_chirp', 0.65); }
+  sfxDragonChorus() { this.playSfx('dragon_chorus', 0.7); }
 }
 
 // ============================================================================
@@ -904,6 +939,8 @@ class DragonQuestGame {
     this.particleMatCache = new Map();
 
     this.audio = new AudioSystem();
+    this.dialogue = new DialogueSystem(this);
+    this.dialogue.load();
     this.assets = new AssetLibrary(this.sharedResources, this.heroTextures);
     this.textures = new TextureFactory(this.sharedResources);
 
@@ -1120,7 +1157,7 @@ class DragonQuestGame {
       pill.textContent = `✨ Loading Wave 2 3D World: ${loaded}/${total} Models (Meshy + Tripo3D)...`;
     });
     const count = this.assets.loadedCount;
-    pill.textContent = `✅ ${count}/${this.assets.totalExpected} 3D Models + Suno OST Ready!`;
+    pill.textContent = `✅ World Ready!`;
     if (this.mode === 'title') this.buildTitleDiorama();
   }
 
@@ -1654,19 +1691,20 @@ class DragonQuestGame {
     document.getElementById('title-screen').classList.remove('hidden');
     this.cutscene = null;
     this.refreshSaveUI();
-    this.audio.setMusicMode('overworld');
+    this.audio.setMusicMode('title');
     this.buildTitleDiorama();
   }
 
   showStoryModal(story, callback) {
     this.mode = 'story';
-    document.getElementById('story-badge').textContent = story.badge;
+    const trim8 = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).slice(0, TUNING.maxCaptionWords).join(' ');
+    document.getElementById('story-badge').textContent = trim8(story.badge);
     document.getElementById('story-art').textContent = story.art;
-    document.getElementById('story-title').textContent = story.title;
-    document.getElementById('story-body').textContent = story.body;
+    document.getElementById('story-title').textContent = trim8(story.title);
+    document.getElementById('story-body').textContent = trim8(story.shortBody || story.body);
     const extraEl = document.getElementById('story-extra');
-    if (story.extra) {
-      extraEl.textContent = story.extra;
+    if (story.shortExtra) {
+      extraEl.textContent = trim8(story.shortExtra);
       extraEl.classList.remove('hidden');
     } else extraEl.classList.add('hidden');
     this.storyCallback = callback;
@@ -2030,7 +2068,7 @@ class DragonQuestGame {
 
     this.scene.background = new THREE.Color(def.skyBottom);
     this.scene.fog = new THREE.Fog(def.fogColor, 42, 128);
-    this.audio.setMusicMode('overworld');
+    this.audio.setLevelTrack(idx);
 
     this.addSkyBackdrop(def.skyTop, def.skyBottom, def.biome !== 'cavern' && def.biome !== 'castle_cavern');
     this.addSurroundingScenery(def);
@@ -2044,7 +2082,7 @@ class DragonQuestGame {
     document.getElementById('boss-hud').classList.add('hidden');
     document.getElementById('hud-level-badge').textContent = def.badge;
     document.getElementById('hud-level-name').textContent = def.name;
-    document.getElementById('hud-objective').textContent = def.objective;
+    document.getElementById('hud-objective').textContent = def.objective.split(/\s+/).slice(0, TUNING.maxCaptionWords).join(' ');
 
     this.magic = this.maxMagic;
     this.magicBoostTimer = 0;
@@ -2248,8 +2286,8 @@ class DragonQuestGame {
         blockZ: z - d / 2 + 0.9,
         requiredHeroIdx: 2,
         requiresDragon: !!opts.requiresDragon,
-        hintText: opts.hintText || 'Vanessa can freeze the water!',
-        hintDialogueId: opts.hintDialogueId || null,
+        hintText: opts.hintText || (opts.requiresDragon ? 'Vanessa and Frosty can bridge this water.' : 'Vanessa can freeze a path here.'),
+        hintDialogueId: opts.hintDialogueId || (opts.requiresDragon ? 'hint_vanessa_frosty' : 'hint_vanessa_ice'),
         chasmZone: zone,
         onOpen: () => {
           this.freezeChasmBridge(zone);
@@ -2649,11 +2687,11 @@ class DragonQuestGame {
 
     if (opts.spanGate !== false) {
       const gateMap = {
-        bramble: { requiredHeroIdx: 1, requiresDragon: false, hintText: opts.hintText || 'Daniel can burn the brambles!' },
-        boulder: { requiredHeroIdx: 3, requiresDragon: false, hintText: opts.hintText || 'Michael can move the boulder!' },
-        ice_barrier: { requiredHeroIdx: 1, requiresDragon: true, hintText: opts.hintText || 'Ask Daniel and Ember to melt it!' },
-        obsidian_gate: { requiredHeroIdx: 3, requiresDragon: true, hintText: opts.hintText || 'Michael and Samson can open it!' },
-        magma_vent: { requiredHeroIdx: 2, requiresDragon: false, hintText: opts.hintText || 'Vanessa can cool the vents!' },
+        bramble: { requiredHeroIdx: 1, requiresDragon: false, hintText: opts.hintText || 'Let Daniel burn away that tangle.', hintDialogueId: 'hint_daniel_fire' },
+        boulder: { requiredHeroIdx: 3, requiresDragon: false, hintText: opts.hintText || 'Michael is strong enough for that.', hintDialogueId: 'hint_michael_strength' },
+        ice_barrier: { requiredHeroIdx: 1, requiresDragon: true, hintText: opts.hintText || 'Ask Ember to help Daniel melt it.', hintDialogueId: 'l4_keeper_ice_hint' },
+        obsidian_gate: { requiredHeroIdx: 3, requiresDragon: true, hintText: opts.hintText || 'Michael and Samson can open that gate.', hintDialogueId: 'hint_michael_samson' },
+        magma_vent: { requiredHeroIdx: 2, requiresDragon: false, hintText: opts.hintText || 'Vanessa can freeze a path here.', hintDialogueId: 'hint_vanessa_ice' },
       };
       const cfg = gateMap[type];
       if (cfg) {
@@ -2672,7 +2710,7 @@ class DragonQuestGame {
             requiredHeroIdx: cfg.requiredHeroIdx,
             requiresDragon: cfg.requiresDragon,
             hintText: cfg.hintText,
-            hintDialogueId: opts.hintDialogueId || null,
+            hintDialogueId: opts.hintDialogueId || cfg.hintDialogueId || null,
             meshes: type === 'magma_vent' ? [] : extraMeshes,
             obstacles: [ob],
             onOpen: (gate) => {
@@ -3477,7 +3515,8 @@ class DragonQuestGame {
             freed.trappedByWeb = null;
             freed.webCocoon.visible = false;
             this.spawnFloatingText(freed.pos.clone().add(new THREE.Vector3(0, 2.2, 0)), '✨ FREED!', '#ffe999');
-            this.showAlert(`✨ Freed ${freed.def.name} from the Tickling Spider web!`, 2.0);
+            this.showAlert(`Freed ${freed.def.name}!`, 2.0);
+            this.dialogue?.play('l1_vanessa_free').catch(() => {});
           }
           w.trappedHeroIdx = -1;
         }
@@ -4456,7 +4495,8 @@ class DragonQuestGame {
             h.trappedByWeb = w;
             w.trappedHeroIdx = idx;
             this.audio.sfxWebTrap();
-            this.showAlert(`🕸️ ${h.def.name} is stuck in a web! SWAP HERO [1–4 / Q] & attack the web!`, 4.0);
+            this.showAlert('Stuck in a web! Swap hero!', 3.2);
+            this.dialogue?.play('l1_hero_web').catch(() => {});
             break;
           }
         }
@@ -5069,8 +5109,8 @@ class DragonQuestGame {
     }
 
     document.getElementById('controls-strip').textContent = this.isCoop
-      ? '2P CO-OP | P1: WASD + Space + F/Shift + Q(Swap)  •  P2: Arrows + / + L/; + P(Swap)  •  R: Red Berry  •  T: Green Berry'
-      : '1P SOLO | WASD/Arrows: Move • Space: Jump • J/Click: Ability • K/Shift: Dragon Special • 1–4/Q: Swap Hero • R: Red Berry • G: Green Berry';
+      ? '2P: Stick Move • A Jump • X Gift • Y Swap'
+      : 'Stick Move • A Jump • X Gift • Y Swap • C Call';
   }
 
   onResize() {
