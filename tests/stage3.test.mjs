@@ -322,7 +322,7 @@ export async function runStage3Tests(browser, baseUrl) {
         g.swapHero(1, 0, true);
         walkTo(0, -396);
         const reachedHatchCutscene = g.mode === 'cutscene' && g.cutscene?.type === 'hatch';
-        if (reachedHatchCutscene) stepSecs(6.0);
+        if (reachedHatchCutscene) stepSecs(9.5);
 
         window.__setGamepad(0, null);
         return {
@@ -350,6 +350,81 @@ export async function runStage3Tests(browser, baseUrl) {
       );
       assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
       results.push({ name: `${name} (${run.elapsedMinutes} min, boss=${run.bossFightDuration}s, gold=${run.goldCollected}/3)`, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
+  // Milestone 3.3: Egg glows brighter as Joshua nears, story draft hatching lines play, Speedy bonds & survives reload
+  {
+    const name = '3.3: Egg glows brighter as Joshua nears, hatching lines play, Speedy bonds and survives reload';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false, clearStorage: false });
+    try {
+      const { page } = session;
+      const hatchState = await page.evaluate(async () => {
+        const g = window.game;
+        await g.dialogue.load();
+        g.resetSave();
+        g.startLevel(1, false); // Level 2
+        g.boss.dead = true;
+        g.boss.freed = true;
+        g.p1Hero = 0; // Joshua
+        const eggPos = g.eggObj.pos.clone();
+
+        // Far from egg (25u away)
+        g.heroes[0].pos.set(eggPos.x, eggPos.y, eggPos.z + 25);
+        g.step(0.1, 1 / 60, false);
+        const glowFar = g.eggObj.glowIntensity;
+
+        // Near egg (10u away) -> should glow brighter & trigger Keeper near-egg line!
+        g.heroes[0].pos.set(eggPos.x, eggPos.y, eggPos.z + 10);
+        g.step(0.2, 1 / 60, false);
+        const glowNear = g.eggObj.glowIntensity;
+
+        // Touch egg -> start hatching scene and let it play all the way to completion
+        g.heroes[0].pos.set(eggPos.x, eggPos.y, eggPos.z + 1.0);
+        g.step(0.1, 1 / 60, false);
+        const startedHatch = g.mode === 'cutscene' && g.cutscene?.type === 'hatch';
+        g.step(9.5, 1 / 30, false);
+
+        const playedIds = g.dialogue.playedHistory.map((p) => p.id);
+        return {
+          glowFar,
+          glowNear,
+          startedHatch,
+          playedIds,
+          bondedNow: g.bondedDragons[0],
+        };
+      });
+
+      assert.ok(hatchState.glowNear > hatchState.glowFar + 1.0, `Egg must glow brighter as Joshua nears (far=${hatchState.glowFar}, near=${hatchState.glowNear})`);
+      assert.equal(hatchState.startedHatch, true, 'Hatching scene must start');
+      assert.ok(hatchState.playedIds.includes('l2_keeper_near_egg'), `Missing l2_keeper_near_egg in ${hatchState.playedIds}`);
+      assert.ok(hatchState.playedIds.includes('l2_joshua_hatch'), `Missing l2_joshua_hatch in ${hatchState.playedIds}`);
+      assert.ok(hatchState.playedIds.includes('l2_michael_friend'), `Missing l2_michael_friend in ${hatchState.playedIds}`);
+      assert.equal(hatchState.bondedNow, true, 'Speedy must bond during scene');
+
+      // Reload the save in a fresh page inside the same browser context (same localStorage!)
+      const page2 = await session.context.newPage();
+      await page2.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+      await page2.waitForFunction(() => Boolean(window.game && window.game.renderer), { timeout: 30000 });
+      const afterReload = await page2.evaluate(() => {
+        const g = window.game;
+        // Start Level 2 or Continue from saved progress
+        document.getElementById('btn-continue-save').click();
+        g.step(0.1, 1 / 60, false);
+        return {
+          bondedAfterReload: g.bondedDragons[0],
+          speedyVisible: g.heroes[0]?.dragonMesh?.visible || false,
+          highestLevel: g.highestLevel,
+        };
+      });
+      await page2.close();
+
+      assert.equal(afterReload.bondedAfterReload, true, 'Speedy bond must persist after reload');
+      assert.equal(afterReload.speedyVisible, true, 'Speedy must be visible beside Joshua after reload');
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
     } finally {
       await session.close();
     }

@@ -1453,6 +1453,7 @@ class DragonQuestGame {
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.08;
     group.add(halo);
+    group.userData.halo = halo;
     return group;
   }
 
@@ -2456,9 +2457,16 @@ class DragonQuestGame {
 
     const hero = this.heroes[heroIdx];
     const hd = HERO_DEFS[heroIdx];
-    document.getElementById('cutscene-tag').textContent = `✨ DRAGON BOND — ${hd.dragonName.toUpperCase()} HATCHES!`;
-    document.getElementById('cutscene-text').textContent =
-      `${hd.name} holds the glowing egg gently as it cracks open... ${hd.dragonName} imprints on ${hd.name} and unlocks ${hd.upgradedAbility}!`;
+    document.getElementById('cutscene-tag').textContent = `${hd.dragonName.toUpperCase()} HATCHES!`;
+    document.getElementById('cutscene-text').textContent = `${hd.dragonName} meets ${hd.name}!`;
+
+    const hatchDialogueByHero = [
+      { hatch: 'l2_joshua_hatch', reaction: 'l2_michael_friend' },
+      { hatch: 'l3_daniel_hatch', reaction: 'l3_joshua_both' },
+      { hatch: 'l4_vanessa_hatch', reaction: 'l4_daniel_mommy_dragon' },
+      { hatch: 'l5_michael_hatch', reaction: 'l5_vanessa_home' },
+    ];
+    const lineIds = hatchDialogueByHero[heroIdx] || hatchDialogueByHero[0];
 
     // Towering golden light beam at the egg!
     const beam = new THREE.Mesh(
@@ -2469,6 +2477,8 @@ class DragonQuestGame {
     this.worldGroup.add(beam);
 
     this.audio.sfxHatch();
+    if (lineIds.hatch) this.dialogue?.play(lineIds.hatch).catch(() => {});
+
     const eggPos = this.eggObj.pos.clone();
     const grantHatchReward = () => {
       if (this.eggObj) {
@@ -2488,16 +2498,19 @@ class DragonQuestGame {
     this.cutscene = {
       type: 'hatch',
       elapsed: 0,
-      duration: 5.5,
+      duration: 8.8,
       hero,
       heroIdx,
       eggPos,
       beam,
+      lineIds,
       hatchedBurst: false,
+      reactionSpoken: false,
       def,
       grantRewards: grantHatchReward,
       onDone: () => {
         this.worldGroup.remove(beam);
+        this.disposeObject3D(beam);
         grantHatchReward();
         this.showStoryModal(def.outroStory, () => this.startLevel(this.currentLevelIdx + 1, true));
       },
@@ -2551,7 +2564,7 @@ class DragonQuestGame {
       );
       this.camera.lookAt(cs.eggPos.x, cs.eggPos.y + 1.5, cs.eggPos.z);
 
-      if (t < 2.2) {
+      if (t < 3.0) {
         this.eggObj.mesh.rotation.y += dt * 10;
         this.eggObj.mesh.position.x = cs.eggPos.x + Math.sin(t * 40) * 0.14;
       } else if (!cs.hatchedBurst) {
@@ -2561,16 +2574,21 @@ class DragonQuestGame {
         this.bondedDragons[cs.heroIdx] = true;
         cs.hero.dragonMesh.visible = true;
         cs.hero.dragonMesh.position.copy(cs.eggPos).add(new THREE.Vector3(0, 1.4, 0));
-        this.audio.sfxVictory();
+        this.audio.sfxDragonChirp();
         this.spawnParticles(cs.eggPos.clone().add(new THREE.Vector3(0, 1.3, 0)), HERO_DEFS[cs.heroIdx].dragonColor, 55);
       } else {
-        // Baby dragon circles triumphantly around its bonded hero!
+        // Baby dragon zooms joyfully around its bonded hero's head!
+        const centerPos = cs.hero ? cs.hero.pos : cs.eggPos;
         cs.hero.dragonMesh.position.set(
-          cs.eggPos.x + Math.cos(t * 4.5) * 1.8,
-          cs.eggPos.y + 2.2 + Math.sin(t * 6) * 0.35,
-          cs.eggPos.z + Math.sin(t * 4.5) * 1.8
+          centerPos.x + Math.cos(t * 5.2) * 1.7,
+          centerPos.y + 2.3 + Math.sin(t * 7.5) * 0.35,
+          centerPos.z + Math.sin(t * 5.2) * 1.7
         );
-        cs.hero.dragonMesh.rotation.y = -t * 4.5;
+        cs.hero.dragonMesh.rotation.y = -t * 5.2;
+        if (t >= 5.0 && !cs.reactionSpoken) {
+          cs.reactionSpoken = true;
+          if (cs.lineIds?.reaction) this.dialogue?.play(cs.lineIds.reaction).catch(() => {});
+        }
       }
       cs.beam.rotation.y += dt * 2.5;
     }
@@ -3115,10 +3133,18 @@ class DragonQuestGame {
     this.worldGroup.add(mesh);
     if (this.goalAccentLight) {
       this.goalAccentLight.color.setHex(colorHex);
-      this.goalAccentLight.intensity = 2.8;
+      this.goalAccentLight.intensity = 2.0;
       this.goalAccentLight.position.set(x, y + 1.4, z);
     }
-    this.eggObj = { mesh, pos: new THREE.Vector3(x, y, z), colorHex, hatched: false };
+    this.eggObj = {
+      mesh,
+      halo: mesh.userData.halo || null,
+      pos: new THREE.Vector3(x, y, z),
+      colorHex,
+      hatched: false,
+      glowIntensity: 1.0,
+      nearLineSpoken: false,
+    };
   }
 
   spawnHeroes() {
@@ -4963,17 +4989,35 @@ class DragonQuestGame {
     }
 
     if (this.eggObj && !this.eggObj.hatched) {
-      this.eggObj.mesh.rotation.y += dt * 1.4;
-      this.eggObj.mesh.position.y = this.eggObj.pos.y + Math.sin(t * 2.8) * 0.25;
       const def = LEVEL_DEFS[this.currentLevelIdx];
+      const targetHeroObj = def.eggHeroIndex !== null ? this.heroes[def.eggHeroIndex] : this.heroes[this.p1Hero];
+      const heroDist = targetHeroObj ? targetHeroObj.pos.distanceTo(this.eggObj.pos) : 99;
+      const prox = THREE.MathUtils.clamp(1 - heroDist / 22, 0, 1);
+      this.eggObj.glowIntensity = 1.0 + prox * 3.5;
+
+      this.eggObj.mesh.rotation.y += dt * (1.4 + prox * 3.2);
+      this.eggObj.mesh.position.y = this.eggObj.pos.y + Math.sin(t * (2.8 + prox * 6.0)) * (0.22 + prox * 0.12);
+      this.eggObj.mesh.position.x = this.eggObj.pos.x + (prox > 0.2 ? Math.sin(t * 22) * 0.08 * prox : 0);
+      if (this.eggObj.halo) {
+        this.eggObj.halo.scale.setScalar(1.0 + prox * 0.65);
+        this.eggObj.halo.material.opacity = 0.55 + prox * 0.45;
+      }
+      if (this.goalAccentLight) {
+        this.goalAccentLight.intensity = 2.0 + prox * 5.0;
+      }
+
       if (this.boss && this.boss.dead) {
+        if (def.index === 1 && !this.eggObj.nearLineSpoken && heroDist < 16) {
+          this.eggObj.nearLineSpoken = true;
+          this.dialogue?.play('l2_keeper_near_egg').catch(() => {});
+        }
         for (const h of activeHeroes) {
           if (h.pos.distanceTo(this.eggObj.pos) < 2.8) {
             if (h.index === def.eggHeroIndex) {
               this.startEggHatchCutscene(def.eggHeroIndex, def);
             } else {
               const targetHero = HERO_DEFS[def.eggHeroIndex];
-              this.showAlert(`🥚 Swap to ${targetHero.name} [${def.eggHeroIndex + 1}] to hold this egg as it hatches!`, 2.6);
+              this.showAlert(`Swap to ${targetHero.name} for this egg!`, 2.6);
             }
             break;
           }

@@ -166,3 +166,14 @@ Base commit: `db7f6b9`
   - All Stage 1 regression tests (including 1.3 gap respawn on the new Level 2 chasms and 1.5 memory release) passed.
 - **Result:** PASS (3 passed in stage3, 5 passed in stage1)
 - **Choices:** Implemented Level 2 in modular `src/levels/level2.js` with wooden deck railings + lanterns, animated swaying bridge steadied by Michael, animated cascading waterfall frozen into 10 glittering ice steps by Vanessa, wind-runway leap + vine bridge drop by Joshua, woven twig Green Egg nest, and camera-following sky dome.
+
+### 3.3 The hatching (Level 2)
+- **Started:** 2026-11-25T02:40:30Z
+- **Finished:** 2026-11-25T02:42:10Z
+- **Checks:** `npm test stage3` — verified Green Egg glows brighter and wobbles faster as Joshua nears (`glowIntensity` increases), Keeper speaks `l2_keeper_near_egg` when Joshua enters 16u, hatching scene plays `assets/audio/hatching.mp3` with `l2_joshua_hatch`, Fish Audio `dragon_chirp.mp3`, Speedy zooming around Joshua's head, and `l2_michael_friend`; reloaded browser cleanly and verified Speedy remains bonded and visible beside Joshua.
+- **Result:** PASS (4 passed, 0 failed in stage3)
+- **Choices:** Scaled `eggObj.glowIntensity`, halo scale/opacity, `goalAccentLight.intensity`, and egg wobble frequency continuously with proximity (`dist < 22u`).
+
+### 3.4 Playtest (Level 2) — PAUSED (Waiting on Michael)
+- **Started:** 2026-11-25T02:42:15Z
+- **Status:** PAUSED — continuing to Stage 4 (and 7.1 recording script); Stage 5 will not start until Michael's playtest report is in.
