@@ -156,3 +156,13 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage3` — verified `docs/levels/level-2.md` exists and defines the top-down map, all four gates from `STORY.md` in order (`l2_gate_overgrowth` Daniel/Fire, `l2_gate_bridge` Michael/Strength, `l2_gate_waterfall` Vanessa/Ice, `l2_gate_leap` Joshua/Speed) with Keeper hint IDs, berry bushes, 3 gold berries, peaceful wildlife, and the Old Vine arena + Green Egg nest.
 - **Result:** PASS (1 passed, 0 failed in stage3)
 - **Choices:** Designed Level 2 as a rising multi-elevation treetop canopy journey (`z = +12` to `-342`, `y = 0` → `y = 2` → `y = 8`) so a six-year-old experiences genuine vertical ascent above the forest canopy across four distinct set-pieces.
+
+### 3.2 Playable (Level 2)
+- **Started:** 2026-11-25T02:36:15Z
+- **Finished:** 2026-11-25T02:40:05Z
+- **Checks:** `npm test stage3 && npm test stage1`
+  - All 4 Level 2 gates (`l2_gate_overgrowth`, `l2_gate_bridge`, `l2_gate_waterfall`, `l2_gate_leap`) passed 60s wrong-hero edge-hugging/jumping bypass checks (12 wrong-hero runs blocked) and opened cleanly with the matching hero's gift.
+  - Full Easy playthrough bot ran start-to-egg in **9.03 minutes** (542.1s, inside 8–12 min target), using all 4 gifts, freeing The Old Vine in **66.5s**, and reaching the Green Egg to bond Speedy.
+  - All Stage 1 regression tests (including 1.3 gap respawn on the new Level 2 chasms and 1.5 memory release) passed.
+- **Result:** PASS (3 passed in stage3, 5 passed in stage1)
+- **Choices:** Implemented Level 2 in modular `src/levels/level2.js` with wooden deck railings + lanterns, animated swaying bridge steadied by Michael, animated cascading waterfall frozen into 10 glittering ice steps by Vanessa, wind-runway leap + vine bridge drop by Joshua, woven twig Green Egg nest, and camera-following sky dome.

@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { DIFFICULTIES, DIFFICULTY_ORDER, GUARDIAN_HP, HERO_COMBAT, TUNING } from './src/config.js';
 import { DialogueSystem } from './src/dialogue.js';
+import { buildLevel2 } from './src/levels/level2.js';
 
 // ============================================================================
 // JOSHUA & THE DRAGON QUEST — Wave 2 Enhanced 3D Action-Adventure
@@ -123,8 +124,8 @@ const LEVEL_DEFS = [
     cliffColor: 0x2f6b3a,
     ambientParticleColor: 0xb9f6ca,
     bossType: 'vine',
-    bossName: 'GIANT VINE MONSTER',
-    objective: 'Cross the treetop canopy, defeat the Giant Vine Monster & hatch Speedy with Joshua!',
+    bossName: 'THE OLD VINE',
+    objective: 'Free the Old Vine and hatch Speedy!',
     introStory: {
       badge: 'LEVEL 2 — TREETOP CANOPY',
       art: '🌳🟢🥚',
@@ -987,6 +988,9 @@ class DragonQuestGame {
     this.particles = [];
     this.vfxMeshes = [];
     this.ambientMotes = [];
+    this.levelAnimators = [];
+    this.levelMinZ = -120;
+    this.levelMaxZ = 16;
     this.floatingPopups = [];
     this.wildlife = [];
     this.eggObj = null;
@@ -1178,6 +1182,7 @@ class DragonQuestGame {
     tex.colorSpace = THREE.SRGBColorSpace;
     const skyMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false });
     const sky = new THREE.Mesh(skyGeo, skyMat);
+    this.skyMesh = sky;
     this.worldGroup.add(sky);
 
     if (includeClouds) {
@@ -1201,19 +1206,24 @@ class DragonQuestGame {
     const cliffMat = new THREE.MeshStandardMaterial({ color: def.cliffColor, roughness: 0.92 });
     const rockMat = new THREE.MeshStandardMaterial({ color: def.biome === 'frost' ? 0xd9eefc : def.cliffColor, roughness: 0.88 });
 
+    const minZ = Math.min(-112, this.levelMinZ || -120);
+    const totalDepth = Math.abs(minZ) + 45;
+    const centerZ = (20 + minZ) / 2;
+
     // Side grassy banks / cliff ledges bordering the playable corridor
     for (const side of [-1, 1]) {
-      const bank = new THREE.Mesh(new THREE.BoxGeometry(34, 8, 155), cliffMat);
-      bank.position.set(side * 30.5, -2.2, -46);
+      const bank = new THREE.Mesh(new THREE.BoxGeometry(34, 8, totalDepth), cliffMat);
+      bank.position.set(side * 34.5, -3.2, centerZ);
       bank.receiveShadow = true;
       this.worldGroup.add(bank);
 
       // Rolling hills / cliff outcrops along the sides
-      for (let z = 14; z >= -112; z -= 13) {
+      const hillStep = Math.max(13, Math.round(totalDepth / 14));
+      for (let z = 14; z >= minZ; z -= hillStep) {
         const h = 4 + (Math.abs(Math.sin(z * 0.3)) * 5);
         const hill = new THREE.Mesh(new THREE.DodecahedronGeometry(h * 0.72), rockMat);
         hill.scale.set(1.4, 0.85, 1.3);
-        hill.position.set(side * (19.5 + (Math.abs(Math.cos(z)) * 5)), h * 0.25, z);
+        hill.position.set(side * (23.5 + (Math.abs(Math.cos(z)) * 5)), h * 0.25, z);
         hill.receiveShadow = true;
         this.worldGroup.add(hill);
       }
@@ -1223,7 +1233,7 @@ class DragonQuestGame {
     for (let i = -5; i <= 5; i++) {
       const mh = 18 + Math.abs(Math.sin(i * 1.4)) * 18;
       const peak = new THREE.Mesh(new THREE.ConeGeometry(16, mh, 6), rockMat);
-      peak.position.set(i * 22, mh * 0.4 - 4, -126 - Math.abs(i) * 4);
+      peak.position.set(i * 22, mh * 0.4 - 4, minZ - 26 - Math.abs(i) * 4);
       this.worldGroup.add(peak);
     }
 
@@ -2055,6 +2065,9 @@ class DragonQuestGame {
     this.particles = [];
     this.vfxMeshes = [];
     this.ambientMotes = [];
+    this.levelAnimators = [];
+    this.levelMinZ = -120;
+    this.levelMaxZ = 16;
     this.wildlife = [];
     this.eggObj = null;
     this.keeperObj = null;
@@ -2071,7 +2084,6 @@ class DragonQuestGame {
     this.audio.setLevelTrack(idx);
 
     this.addSkyBackdrop(def.skyTop, def.skyBottom, def.biome !== 'cavern' && def.biome !== 'castle_cavern');
-    this.addSurroundingScenery(def);
 
     document.getElementById('title-screen').classList.add('hidden');
     document.getElementById('gameover-overlay').classList.add('hidden');
@@ -2088,6 +2100,7 @@ class DragonQuestGame {
     this.magicBoostTimer = 0;
 
     this.buildBiomeGeometry(def);
+    this.addSurroundingScenery(def);
     this.spawnHeroes();
     this.p1Hero = 0;
     this.p2Hero = 1;
@@ -2799,7 +2812,7 @@ class DragonQuestGame {
     mesh.add(iceCube);
 
     this.worldGroup.add(mesh);
-    const hpMap = { spider: 35, wolf: 45, vine_minion: 50, golem_minion: 65, gargoyle_minion: 60 };
+    const hpMap = { spider: 65, wolf: 80, vine_minion: 90, golem_minion: 100, gargoyle_minion: 95 };
     const speedMap = { spider: 4.5, wolf: 6.2, vine_minion: 2.2, golem_minion: 3.4, gargoyle_minion: 5.5 };
     this.enemies.push({
       type, mesh, hpBg, hpFill, iceCube, pos: new THREE.Vector3(x, y, z), home: new THREE.Vector3(x, y, z),
@@ -2940,38 +2953,7 @@ class DragonQuestGame {
       this.addBoss(def.bossType, def.bossName, 0, -72);
       this.spawnKeeperOfTheForest(0, -84);
     } else if (idx === 1) {
-      // LEVEL 2: TREETOP CANOPY (Moving Wooden Canopy Platforms!)
-      this.addGroundSegment(0, -4, 22, 30, def.biome, 0);
-      this.addChasmZone(0, -22, 26, 8, 'water');
-      this.addMovingPlatform(0, -22, 7.5, 6.5, def.biome, 0.05, 'x', 5.2, 1.35);
-      this.addGroundSegment(0, -41, 20, 30, def.biome, 0);
-      this.addGroundSegment(-14, -42, 10, 12, def.biome, 0); // Secret West Canopy Branch!
-      this.addChasmZone(0, -59, 26, 8, 'water');
-      this.addMovingPlatform(0, -59, 7.5, 6.5, def.biome, 0.05, 'x', -5.2, 1.55);
-      this.addGroundSegment(0, -77, 26, 30, def.biome, 0);
-
-      const trees = [];
-      for (let z = 8; z >= -86; z -= 10) trees.push([-14.5, z, 1.45], [14.5, z, 1.45]);
-      this.addStylizedTrees(trees);
-
-      this.addObstacle('bramble', 0, -12);
-      this.addSpiderWeb(0, -32);
-      this.addEnemy('spider', 4.5, -35);
-      this.addEnemy('vine_minion', -4.5, -42);
-      this.addEnemy('wolf', 4, -48);
-      this.addEnemy('vine_minion', 0, -66);
-
-      this.addBerryBush(-7, -6, 'green');
-      this.addBerryBush(7, -36, 'red');
-      this.addBerryBush(-15, -42, 'green');
-      this.addBerryBush(8, -69, 'red');
-
-      this.addGoldBerry('l2_g1', -8.5, -14);
-      this.addGoldBerry('l2_g2', -16.5, -44);
-      this.addGoldBerry('l2_g3', -9.5, -84);
-
-      this.addBoss(def.bossType, def.bossName, 0, -76);
-      this.spawnDragonEgg(def.eggPropKey, 0x39e58c, 0, -86, 0);
+      buildLevel2(this, def);
     } else if (idx === 2) {
       // LEVEL 3: SCORCHED CAVERNS
       this.addGroundSegment(0, -10, 24, 42, def.biome, 0);
@@ -4083,6 +4065,7 @@ class DragonQuestGame {
     this.magic = Math.min(this.maxMagic, this.magic + regenRate * dt);
 
     this.updateMovingPlatformsAndPuzzles(dt);
+    if (this.levelAnimators) this.levelAnimators.forEach((fn) => fn(t, dt));
     this.updateDangerZones(dt);
     this.updateHeroes(dt);
     this.updateProjectiles(dt);
@@ -4475,7 +4458,7 @@ class DragonQuestGame {
           h.onGround = false;
         }
         const safeBaseY = h.lastSafePos ? h.lastSafePos.y : 0;
-        if (!floor.onSolid && h.pos.y < Math.min(-2.2, safeBaseY - 2.5)) {
+        if (!floor.onSolid && h.pos.y < safeBaseY - 3.0) {
           const fallX = h.pos.x;
           const fallZ = h.pos.z;
           h.pos.copy(h.lastSafePos);
@@ -5028,6 +5011,7 @@ class DragonQuestGame {
     }
 
     this.camera.lookAt(this.cameraTarget.x, this.cameraTarget.y + 1.0, this.cameraTarget.z - 1.8);
+    if (this.skyMesh) this.skyMesh.position.copy(this.camera.position);
     this.dirLight.position.set(this.cameraTarget.x + 22, 40, this.cameraTarget.z + 20);
     this.dirLight.target.position.copy(this.cameraTarget);
   }
