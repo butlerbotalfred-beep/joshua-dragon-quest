@@ -177,3 +177,10 @@ Base commit: `db7f6b9`
 ### 3.4 Playtest (Level 2) — PAUSED (Waiting on Michael)
 - **Started:** 2026-11-25T02:42:15Z
 - **Status:** PAUSED — continuing to Stage 4 (and 7.1 recording script); Stage 5 will not start until Michael's playtest report is in.
+
+### 4.1 Prologue
+- **Started:** 2026-11-25T02:42:40Z
+- **Finished:** 2026-11-25T02:43:58Z
+- **Checks:** `npm test stage4` — bot watched the full 3D prologue from berry picking to the end (41.5s); verified all 9 story-draft lines played in order, Keeper stepped out of the trees in person, named Renee as his Ward and wife, granted the 4 gifts with flying gift orbs, and launched Level 1 with all 4 gifts active and working.
+- **Result:** PASS (1 passed, 0 failed in stage4)
+- **Choices:** Built `createReneeRenderable()` as a simple geometric stand-in for Renee (royal-blue gown, gold tutor shawl, silver hair bun, warm gold ground halo) because none of the repository GLBs depicts an older female tutor/ward.

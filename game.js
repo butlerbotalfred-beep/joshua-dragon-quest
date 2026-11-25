@@ -953,6 +953,8 @@ class DragonQuestGame {
     this.highestLevel = 0;
     this.completedLevels = new Set();
     this.bondedDragons = [false, false, false, false];
+    this.giftsGranted = true;
+    this.giftsPermanent = false;
     this.magic = 100;
     this.maxMagic = 100;
     this.magicBoostTimer = 0;
@@ -1481,6 +1483,33 @@ class DragonQuestGame {
     group.add(berryGroup);
     group.userData.berryGroup = berryGroup;
     return group;
+  }
+
+  createReneeRenderable() {
+    // Simple stand-in for Renee (the Ward, kindly older tutor & Keeper's wife) since no repository GLB fits her
+    const g = new THREE.Group();
+    const robeMat = new THREE.MeshStandardMaterial({ color: 0x2c5282, roughness: 0.65 });
+    const shawlMat = new THREE.MeshStandardMaterial({ color: 0xf5c953, roughness: 0.55 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xfbe5c8, roughness: 0.65 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7 });
+
+    const dress = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.55, 12), robeMat);
+    dress.position.y = 0.78;
+    dress.castShadow = true;
+    const shawl = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.5, 0.36, 12), shawlMat);
+    shawl.position.y = 1.32;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 12), skinMat);
+    head.position.y = 1.72;
+    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10), hairMat);
+    bun.position.set(0, 1.9, -0.18);
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(0.7, 0.95, 22),
+      new THREE.MeshBasicMaterial({ color: 0xffe082, side: THREE.DoubleSide, transparent: true, opacity: 0.72 })
+    );
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = 0.06;
+    g.add(dress, shawl, head, bun, halo);
+    return g;
   }
 
   addCastleStructure(x, y, z, scale = 1) {
@@ -2395,55 +2424,120 @@ class DragonQuestGame {
   startPrologueCutscene() {
     this.clearWorld();
     this.mode = 'cutscene';
+    this.giftsGranted = false;
     document.getElementById('title-screen').classList.add('hidden');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('hero-dock').classList.add('hidden');
     document.getElementById('combat-bar').classList.add('hidden');
     document.getElementById('controls-strip').classList.add('hidden');
     document.getElementById('cutscene-ui').classList.remove('hidden');
-    document.getElementById('cutscene-tag').textContent = 'PROLOGUE — SPRING MOUNTAIN FESTIVAL MORNING';
-    document.getElementById('cutscene-text').textContent =
-      'On the bright morning of the Spring Mountain Festival, the royal family heads into The Great Woods—until the Great Black Dragon descends upon the Royal Castle!';
+    document.getElementById('cutscene-tag').textContent = 'FESTIVAL MORNING';
+    document.getElementById('cutscene-text').textContent = 'Picking berries in the woods.';
 
     this.scene.background = new THREE.Color(0x90caf9);
     this.scene.fog = new THREE.Fog(0xa8d8e8, 35, 130);
     this.addSkyBackdrop(0x3a8ee6, 0xd4f1d4, true);
     this.addGroundSegment(0, -10, 44, 64, 'woods', 0);
     this.addCastleStructure(0, 0, -24, 1.35);
-    this.addStylizedTrees([[-14, -4, 1.2], [14, -4, 1.2], [-15, -16, 1.3], [15, -16, 1.3]]);
+    this.addStylizedTrees([[-14, -4, 1.2], [14, -4, 1.2], [-15, -16, 1.3], [15, -16, 1.3], [-9, 4, 1.15]]);
 
-    // Royal family watching from the forest clearing
-    HERO_DEFS.forEach((hd, i) => {
+    // Berry bushes the family is picking from!
+    this.addBerryBush(-5.2, 6.2, 'red', 0);
+    this.addBerryBush(5.2, 6.2, 'green', 0);
+
+    // Royal family picking berries in the clearing
+    const familyMeshes = HERO_DEFS.map((hd, i) => {
       const m = this.createHeroRenderable(hd);
       m.root.position.set(-3 + i * 2, 0, 8);
       m.root.rotation.y = Math.PI;
       this.worldGroup.add(m.root);
+      return m.root;
     });
+
+    // Renee (the Ward) on the distant castle tower balcony flinging the eggs to safety!
+    const reneeMesh = this.createReneeRenderable();
+    reneeMesh.position.set(1.8, 6.5, -20.5);
+    this.worldGroup.add(reneeMesh);
+
+    // The Keeper waiting in the tree line, ready to step out in person!
+    const keeperMesh = new THREE.Group();
+    const kSrc = this.assets.models['keeper_of_the_forest'];
+    if (kSrc) {
+      keeperMesh.add(this.assets.instantiateNormalized(kSrc, 2.35, false, true).wrapper);
+    } else {
+      const robe = new THREE.Mesh(
+        new THREE.ConeGeometry(0.78, 2.3, 10),
+        new THREE.MeshStandardMaterial({ color: 0x1b8a5a, emissive: 0x0d472e, emissiveIntensity: 0.45 })
+      );
+      robe.position.y = 1.15;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 12), new THREE.MeshStandardMaterial({ color: 0xfbe5c8 }));
+      head.position.y = 2.45;
+      keeperMesh.add(robe, head);
+    }
+    keeperMesh.position.set(-12.5, 0, 2.5);
+    this.worldGroup.add(keeperMesh);
 
     const dragon = this.createBossRenderable('black_dragon');
     dragon.position.set(-22, 22, -40);
     this.worldGroup.add(dragon);
 
-    // 4 Glowing Eggs ready to launch from the castle!
+    // 4 Glowing Eggs flung to the four corners of the kingdom!
     const eggKeys = ['egg_green', 'egg_red', 'egg_blue', 'egg_purple'];
     const eggColors = [0x39e58c, 0xff5238, 0x5ce1ff, 0xb76eff];
     const meteors = eggKeys.map((k, i) => {
       const e = this.createEggRenderable(k, eggColors[i]);
       e.visible = false;
-      e.position.set(0, 11, -24);
+      e.position.set(0, 11, -22);
       this.worldGroup.add(e);
       return { mesh: e, dir: new THREE.Vector3((i - 1.5) * 14, 18 + (i % 2) * 5, -18 - i * 4), color: eggColors[i] };
     });
 
-    this.audio.setMusicMode('boss');
+    // 4 Gift orbs that fly from Keeper's staff into each family member's hands!
+    const giftOrbs = HERO_DEFS.map((hd) => {
+      const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.32, 10, 10),
+        new THREE.MeshStandardMaterial({ color: hd.color, emissive: hd.color, emissiveIntensity: 0.95 })
+      );
+      orb.visible = false;
+      this.worldGroup.add(orb);
+      return orb;
+    });
+
+    const beats = [
+      { t: 0.4, id: 'prologue_joshua_stars', tag: 'FESTIVAL MORNING', short: 'Shooting stars in the daytime!' },
+      { t: 3.6, id: 'prologue_dragon_eggs', tag: 'THE GREAT BLACK DRAGON', short: 'Four eggs streak across the sky!' },
+      { t: 7.4, id: 'prologue_keeper_intro_1', tag: 'THE KEEPER OF THE FOREST', short: 'The Keeper steps from the trees.' },
+      { t: 11.4, id: 'prologue_keeper_intro_2', tag: 'THE KEEPER OF THE FOREST', short: 'A lonely dragon took four eggs.' },
+      { t: 16.6, id: 'prologue_keeper_intro_3', tag: 'RENEE THE WARD', short: 'Renee kept the eggs safe.' },
+      { t: 22.6, id: 'prologue_daniel_teacher', tag: 'PRINCE DANIEL', short: 'Our teacher did that?' },
+      { t: 25.0, id: 'prologue_keeper_gifts', tag: 'FOUR GIFTS', short: 'Speed, Fire, Ice, and Strength!' },
+      { t: 30.8, id: 'prologue_keeper_task', tag: 'THE FIRST TASK', short: 'Free the Great Bear first!' },
+      { t: 37.6, id: 'prologue_michael_start', tag: 'KING MICHAEL', short: 'Stay close, boys!' },
+    ];
+
+    this.audio.setMusicMode('prologue');
+    const grantPrologueGifts = () => {
+      this.giftsGranted = true;
+    };
     this.cutscene = {
       type: 'prologue',
       elapsed: 0,
-      duration: 9.2,
+      duration: 41.5,
       dragon,
       meteors,
+      keeperMesh,
+      reneeMesh,
+      familyMeshes,
+      giftOrbs,
+      beats,
+      nextBeatIdx: 0,
       roared: false,
-      onDone: () => this.startLevel(0, false),
+      giftsTriggered: false,
+      grantRewards: grantPrologueGifts,
+      onDone: () => {
+        grantPrologueGifts();
+        this.startLevel(0, false);
+      },
     };
   }
 
@@ -2524,24 +2618,32 @@ class DragonQuestGame {
 
     if (cs.type === 'prologue') {
       const t = cs.elapsed;
-      if (t < 3.2) {
-        const k = t / 3.2;
+      // Trigger story-draft spoken dialogue beats in exact order
+      while (cs.beats && cs.nextBeatIdx < cs.beats.length && t >= cs.beats[cs.nextBeatIdx].t) {
+        const beat = cs.beats[cs.nextBeatIdx++];
+        document.getElementById('cutscene-tag').textContent = beat.tag;
+        document.getElementById('cutscene-text').textContent = beat.short;
+        this.dialogue?.play(beat.id).catch(() => {});
+      }
+
+      if (t < 3.4) {
+        // Dragon swoops onto the castle while family picks berries
+        const k = t / 3.4;
         cs.dragon.position.set(THREE.MathUtils.lerp(-22, 0, k), THREE.MathUtils.lerp(22, 11.5, k), THREE.MathUtils.lerp(-40, -22, k));
         cs.dragon.rotation.y = 0.2;
-        this.camera.position.set(THREE.MathUtils.lerp(0, 8, k), THREE.MathUtils.lerp(12, 15, k), THREE.MathUtils.lerp(18, 4, k));
+        this.camera.position.set(THREE.MathUtils.lerp(0, 6, k), THREE.MathUtils.lerp(11, 14, k), THREE.MathUtils.lerp(18, 6, k));
         this.camera.lookAt(0, 7, -22);
-      } else {
+      } else if (t < 7.4) {
+        // Renee flings the four eggs across the sky; dragon roars and dives beneath castle!
         if (!cs.roared) {
           cs.roared = true;
           this.audio.sfxInferno();
-          this.triggerShake(0.6, 0.55);
-          this.spawnParticles(new THREE.Vector3(0, 11, -22), 0xff4500, 40);
-          document.getElementById('cutscene-text').textContent =
-            'ROOOAR!! The Great Black Dragon launches four glowing dragon eggs across distant kingdoms before burrowing beneath the castle!';
+          this.triggerShake(0.5, 0.45);
+          this.spawnParticles(new THREE.Vector3(0, 11, -22), 0xff4500, 32);
           cs.meteors.forEach((m) => { m.mesh.visible = true; });
         }
-        const k = Math.min(1, (t - 3.2) / 5.5);
-        cs.dragon.position.y = 11.5 - Math.max(0, (k - 0.45) * 16);
+        const k = Math.min(1, (t - 3.4) / 4.0);
+        cs.dragon.position.y = 11.5 - Math.max(0, (k - 0.35) * 20);
         cs.meteors.forEach((m) => {
           m.mesh.position.set(
             m.dir.x * k * 2.1,
@@ -2549,10 +2651,42 @@ class DragonQuestGame {
             -22 + m.dir.z * k * 1.4
           );
           m.mesh.rotation.y += dt * 4;
-          if (Math.random() < 0.4) this.spawnParticles(m.mesh.position, m.color, 1);
+          if (Math.random() < 0.3) this.spawnParticles(m.mesh.position, m.color, 1);
         });
-        this.camera.position.set(8 - k * 8, 15 + k * 4, 4 + k * 14);
-        this.camera.lookAt(0, 9, -24);
+        this.camera.position.set(6 - k * 6, 14 - k * 5, 6 + k * 10);
+        this.camera.lookAt(0, 5 - k * 3, -10 + k * 14);
+      } else {
+        // Keeper steps out of the trees in person, tells the story, and grants the 4 gifts!
+        cs.dragon.visible = false;
+        cs.meteors.forEach((m) => { m.mesh.visible = false; });
+        const stepK = Math.min(1, (t - 7.4) / 3.0);
+        if (cs.keeperMesh) {
+          cs.keeperMesh.position.set(
+            THREE.MathUtils.lerp(-12.5, 0, stepK),
+            0,
+            THREE.MathUtils.lerp(2.5, 3.2, stepK)
+          );
+          cs.keeperMesh.rotation.y = 0; // Face the family at z=8
+        }
+        if (t >= 25.0 && cs.giftOrbs && cs.familyMeshes) {
+          if (!cs.giftsTriggered) {
+            cs.giftsTriggered = true;
+            this.giftsGranted = true;
+            this.audio.sfxVictory();
+          }
+          const gk = Math.min(1, (t - 25.0) / 3.2);
+          cs.giftOrbs.forEach((orb, i) => {
+            orb.visible = gk < 1.0;
+            const target = cs.familyMeshes[i].position;
+            orb.position.set(
+              THREE.MathUtils.lerp(0, target.x, gk),
+              THREE.MathUtils.lerp(1.8, 1.2, gk) + Math.sin(gk * Math.PI) * 1.8,
+              THREE.MathUtils.lerp(3.2, target.z, gk)
+            );
+          });
+        }
+        this.camera.position.set(Math.sin((t - 7.4) * 0.18) * 3.5, 6.2, 16.5);
+        this.camera.lookAt(0, 1.5, 5.2);
       }
     } else if (cs.type === 'hatch') {
       const t = cs.elapsed;
