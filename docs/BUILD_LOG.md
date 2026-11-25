@@ -198,3 +198,22 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage4` — finished Level 6 with 3 gold berries (verified 6 lanterns = 3 pairs) and with all 18 gold berries (verified 36 lanterns = 18 pairs); verified the Level 6 closing conversation (7 lines) and Festival ending (7 spoken lines + baby dragon chorus) play in the exact story-draft order: Keeper makes gifts permanent, Daniel asks if dragons can stay, chorus of dragon chirps, Renee and Keeper reunite and embrace, Great Black Dragon stays, and Narrator closes.
 - **Result:** PASS (3 passed, 0 failed in stage4)
 - **Choices:** Built `startDragonConversationCutscene()` flowing straight into `startFestivalFinale()` with all 5 freed forest guardians + Great Black Dragon + Renee + Keeper + exact `goldFound * 2` festival lanterns, then transitioning into the playable Festival Courtyard.
+
+### 7.1 Recording script
+- **Started:** 2026-11-25T02:47:40Z
+- **Finished:** 2026-11-25T02:49:30Z
+- **Checks:** `npm test` — verified `docs/recording-script.md` lists all 52 lines across 8 speakers with exact file names and spoken text matching `data/dialogue.json` line counts per speaker. Full suite passed: **22 passed, 0 failed**.
+- **Result:** PASS (22 passed, 0 failed across Stages 0, 1, 2, 3, 4, and 7.1)
+- **Choices:** Completed 7.1 before pausing for Michael so he has the recording script ready at the same time as the Level 2 playtest.
+
+## Waiting on Michael
+
+1. **Milestone 3.4 — Level 2 Playtest (blocking Stage 5):**
+   Level 2 (*Treetop Canopy*) is ready to play on branch `build/gemini` (serve the repo locally and open Level 2 from Level Select, or start from the Prologue). After watching Joshua play Level 2, please let me know:
+   - Did Joshua finish without help?
+   - Where did he get stuck?
+   - Did he ask to play again?
+   *(Per `docs/BUILD_PLAN.md`, I am pausing before Stage 5 so I can fix anything you report from this playtest first.)*
+
+2. **Milestone 7.2 — Family Voice Recordings (for Stage 7.2):**
+   Whenever you are ready, please share one clean 30–60 second voice sample for each family member (**Joshua**, **Daniel**, **Vanessa**, **Michael**) so I can clone each voice in Fish Audio and regenerate their lines (all lines and file names are listed in `docs/recording-script.md`). Stand-in Fish Audio voices are active in the meantime.
