@@ -184,3 +184,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage4` — bot watched the full 3D prologue from berry picking to the end (41.5s); verified all 9 story-draft lines played in order, Keeper stepped out of the trees in person, named Renee as his Ward and wife, granted the 4 gifts with flying gift orbs, and launched Level 1 with all 4 gifts active and working.
 - **Result:** PASS (1 passed, 0 failed in stage4)
 - **Choices:** Built `createReneeRenderable()` as a simple geometric stand-in for Renee (royal-blue gown, gold tutor shawl, silver hair bun, warm gold ground halo) because none of the repository GLBs depicts an older female tutor/ward.
+
+### 4.2 Renee's news
+- **Started:** 2026-11-25T02:44:20Z
+- **Finished:** 2026-11-25T02:45:20Z
+- **Checks:** `npm test stage4` — verified Level 1 Bear-freed (`l1_keeper_bear_freed`) & Keeper reunion (`l1_keeper_reunion` carrying Renee's news from the castle), Level 3 entry (`l3_daniel_hot`) & Ember Golem freed (`l3_keeper_golem_freed` carrying Renee's news), and Level 6 castle door spawning Renee (`reneeObj`) who greets the family (`l6_renee_welcome`).
+- **Result:** PASS (2 passed, 0 failed in stage4)
+- **Choices:** Placed Renee at `(0, 2.0, 8.8)` right in front of the Royal Castle door in Level 6; triggered level-entry family lines (`l3_daniel_hot`, `l4_michael_warm`, `l5_joshua_turn`, `l6_renee_welcome`) via `playLevelStartDialogue(idx)`.

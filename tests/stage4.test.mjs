@@ -68,5 +68,56 @@ export async function runStage4Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 4.2: Keeper updates spoken as news from Renee, and Renee meets the family at Level 6 castle door
+  {
+    const name = '4.2: Renee news updates play at Level 1 reunion & Level 3 golem, and Renee greets family at Level 6 door';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+      const res = await page.evaluate(async () => {
+        const g = window.game;
+        await g.dialogue.load();
+
+        // 1. Level 1: Free Bear -> meet Keeper -> l1_keeper_reunion ("Renee sends word from the castle...")
+        g.dialogue.playedHistory = [];
+        g.startLevel(0, false);
+        g.boss.hp = 1;
+        g.damageBoss(10, 'wind', true);
+        g.heroes[0].pos.copy(g.keeperObj.pos);
+        g.step(0.1, 1 / 60, false);
+        const l1Played = g.dialogue.playedHistory.map((p) => p.id);
+
+        // 2. Level 3: Enter & free Ember Golem -> l3_keeper_golem_freed ("Renee tells me the dragon knows...")
+        g.dialogue.playedHistory = [];
+        g.startLevel(2, false);
+        g.boss.hp = 1;
+        g.damageBoss(10, 'ice', true);
+        g.step(0.1, 1 / 60, false);
+        const l3Played = g.dialogue.playedHistory.map((p) => p.id);
+
+        // 3. Level 6: Renee is present at the castle door and greets the family!
+        g.dialogue.playedHistory = [];
+        g.bondedDragons = [true, true, true, true];
+        g.startLevel(5, false);
+        g.step(0.1, 1 / 60, false);
+        const l6Played = g.dialogue.playedHistory.map((p) => p.id);
+        const reneePresent = !!g.reneeObj && !!g.reneeObj.mesh;
+
+        return { l1Played, l3Played, l6Played, reneePresent };
+      });
+
+      assert.ok(res.l1Played.includes('l1_keeper_bear_freed'), `Level 1 missing bear freed line: ${res.l1Played}`);
+      assert.ok(res.l1Played.includes('l1_keeper_reunion'), `Level 1 missing Renee news reunion line: ${res.l1Played}`);
+      assert.ok(res.l3Played.includes('l3_daniel_hot'), `Level 3 missing Daniel line: ${res.l3Played}`);
+      assert.ok(res.l3Played.includes('l3_keeper_golem_freed'), `Level 3 missing Renee news golem line: ${res.l3Played}`);
+      assert.equal(res.reneePresent, true, 'Renee must appear at the castle door in Level 6');
+      assert.ok(res.l6Played.includes('l6_renee_welcome'), `Level 6 missing Renee greeting: ${res.l6Played}`);
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }

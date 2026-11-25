@@ -997,6 +997,8 @@ class DragonQuestGame {
     this.wildlife = [];
     this.eggObj = null;
     this.keeperObj = null;
+    this.reneeObj = null;
+    this.reneeObj = null;
     this.cutscene = null;
     this.levelGoalTriggered = false;
     this.alertTimer = 0;
@@ -2101,6 +2103,8 @@ class DragonQuestGame {
     this.wildlife = [];
     this.eggObj = null;
     this.keeperObj = null;
+    this.reneeObj = null;
+    this.reneeObj = null;
     this.levelGoalTriggered = false;
   }
 
@@ -2142,9 +2146,23 @@ class DragonQuestGame {
     this.updateHUD();
 
     if (showIntro && def.introStory) {
-      this.showStoryModal(def.introStory, () => { this.mode = 'playing'; });
+      this.showStoryModal(def.introStory, () => {
+        this.mode = 'playing';
+        this.playLevelStartDialogue(idx);
+      });
     } else {
       this.mode = 'playing';
+      this.playLevelStartDialogue(idx);
+    }
+  }
+
+  playLevelStartDialogue(idx) {
+    if (idx === 2) this.dialogue?.play('l3_daniel_hot').catch(() => {});
+    else if (idx === 3) this.dialogue?.play('l4_michael_warm').catch(() => {});
+    else if (idx === 4) this.dialogue?.play('l5_joshua_turn').catch(() => {});
+    else if (idx === 5 && this.reneeObj && !this.reneeObj.greeted) {
+      this.reneeObj.greeted = true;
+      this.dialogue?.play('l6_renee_welcome').catch(() => {});
     }
   }
 
@@ -3193,8 +3211,9 @@ class DragonQuestGame {
       this.spawnDragonEgg(def.eggPropKey, 0xb76eff, 0, -94, 2.5);
     } else {
       // LEVEL 6: MULTI-FLOOR DESCENT BENEATH THE ROYAL CASTLE!
-      // Tier 1: Castle Courtyard (y = 2.0)
+      // Tier 1: Castle Courtyard (y = 2.0) — Renee meets the family at the castle door!
       this.addCastleStructure(0, 2.0, 17, 1.15);
+      this.spawnReneeAtDoor(0, 2.0, 8.8);
       this.addGroundSegment(0, 2, 24, 16, def.biome, 2.0);
       this.addSteepSlope(0, -9, 14, 6, 2.0, 0.0); // Descending stairs to Tier 2!
       // Tier 2: Obsidian Vault (y = 0.0)
@@ -3226,6 +3245,14 @@ class DragonQuestGame {
 
       this.addBoss(def.bossType, def.bossName, 0, -90, -2.0);
     }
+  }
+
+  spawnReneeAtDoor(x, y, z) {
+    const mesh = this.createReneeRenderable();
+    mesh.position.set(x, y, z);
+    mesh.rotation.y = Math.PI; // Facing into the courtyard toward the stairs
+    this.worldGroup.add(mesh);
+    this.reneeObj = { mesh, pos: new THREE.Vector3(x, y, z), greeted: false };
   }
 
   spawnKeeperOfTheForest(x, z) {
@@ -3805,6 +3832,15 @@ class DragonQuestGame {
       const def = LEVEL_DEFS[this.currentLevelIdx];
       if (def.index === 0) {
         this.showAlert('The Great Bear is free!', 4.0);
+        this.dialogue?.play('l1_keeper_bear_freed').then(() => {
+          if (this.currentLevelIdx === 0) this.dialogue?.play('l1_daniel_bear_smile').catch(() => {});
+        }).catch(() => {});
+      } else if (def.index === 2) {
+        this.showAlert('Ember Golem cooled! Bring Daniel to the egg!', 4.5);
+        this.dialogue?.play('l3_keeper_golem_freed').catch(() => {});
+      } else if (def.index === 4) {
+        this.showAlert('Gargoyle rests! Bring Michael to the egg!', 4.5);
+        this.dialogue?.play('l5_keeper_gargoyle_freed').catch(() => {});
       } else if (def.eggHeroIndex !== null) {
         const heroName = HERO_DEFS[def.eggHeroIndex].name;
         this.showAlert(`Guardian freed! Bring ${heroName} to the egg!`, 4.5);
@@ -5108,6 +5144,16 @@ class DragonQuestGame {
       }
     });
 
+    if (this.reneeObj && !this.reneeObj.greeted) {
+      for (const h of activeHeroes) {
+        if (h.pos.distanceTo(this.reneeObj.pos) < 10.0) {
+          this.reneeObj.greeted = true;
+          this.dialogue?.play('l6_renee_welcome').catch(() => {});
+          break;
+        }
+      }
+    }
+
     if (this.keeperObj && !this.levelGoalTriggered && this.boss && this.boss.dead) {
       for (const h of activeHeroes) {
         if (h.pos.distanceTo(this.keeperObj.pos) < 3.4) {
@@ -5115,7 +5161,8 @@ class DragonQuestGame {
           this.completedLevels.add(0);
           this.highestLevel = Math.max(this.highestLevel, 1);
           this.persistSave();
-          this.audio.sfxHatch();
+          this.audio.sfxVictory();
+          this.dialogue?.play('l1_keeper_reunion').catch(() => {});
           this.showStoryModal(LEVEL_DEFS[0].outroStory, () => this.startLevel(1, true));
           break;
         }
