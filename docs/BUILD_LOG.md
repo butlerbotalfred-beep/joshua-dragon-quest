@@ -149,3 +149,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage2` — compared `data/dialogue.json` against every quoted line in `docs/STORY.md` (all 44 story lines matched word for word), verified all 52 Fish Audio speech MP3 files and 17 Fish Audio SFX MP3 files exist on disk, verified all caption chunks and live `#caption-words` never exceed 8 words.
 - **Result:** PASS (8 passed, 0 failed in stage2)
 - **Choices:** Replaced all Web Audio synth SFX oscillators with trimmed Fish Audio sound effects (`assets/audio/sfx/`), switched music engine to on-demand streaming Suno tracks with 600ms cross-fades per `assets/audio/README.md`, and trimmed modal/HUD text to obey the <=8-word rule.
+
+### 3.1 Layout on paper (Level 2)
+- **Started:** 2026-11-25T02:34:45Z
+- **Finished:** 2026-11-25T02:35:35Z
+- **Checks:** `npm test stage3` — verified `docs/levels/level-2.md` exists and defines the top-down map, all four gates from `STORY.md` in order (`l2_gate_overgrowth` Daniel/Fire, `l2_gate_bridge` Michael/Strength, `l2_gate_waterfall` Vanessa/Ice, `l2_gate_leap` Joshua/Speed) with Keeper hint IDs, berry bushes, 3 gold berries, peaceful wildlife, and the Old Vine arena + Green Egg nest.
+- **Result:** PASS (1 passed, 0 failed in stage3)
+- **Choices:** Designed Level 2 as a rising multi-elevation treetop canopy journey (`z = +12` to `-342`, `y = 0` → `y = 2` → `y = 8`) so a six-year-old experiences genuine vertical ascent above the forest canopy across four distinct set-pieces.
