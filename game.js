@@ -998,6 +998,9 @@ class DragonQuestGame {
     this.eggObj = null;
     this.keeperObj = null;
     this.reneeObj = null;
+    this.festivalLanterns = [];
+    this.festivalEmbraced = false;
+    this.festivalDragonStayed = false;
     this.reneeObj = null;
     this.cutscene = null;
     this.levelGoalTriggered = false;
@@ -2104,6 +2107,9 @@ class DragonQuestGame {
     this.eggObj = null;
     this.keeperObj = null;
     this.reneeObj = null;
+    this.festivalLanterns = [];
+    this.festivalEmbraced = false;
+    this.festivalDragonStayed = false;
     this.reneeObj = null;
     this.levelGoalTriggered = false;
   }
@@ -2743,6 +2749,57 @@ class DragonQuestGame {
         }
       }
       cs.beam.rotation.y += dt * 2.5;
+    } else if (cs.type === 'dragon_talk') {
+      const t = cs.elapsed;
+      while (cs.beats && cs.nextBeatIdx < cs.beats.length && t >= cs.beats[cs.nextBeatIdx].t) {
+        const beat = cs.beats[cs.nextBeatIdx++];
+        document.getElementById('cutscene-tag').textContent = beat.tag;
+        document.getElementById('cutscene-text').textContent = beat.short;
+        this.dialogue?.play(beat.id).catch(() => {});
+      }
+      const fp = cs.focusPos;
+      this.camera.position.set(fp.x + Math.sin(t * 0.25) * 8, fp.y + 7.5, fp.z + 14);
+      this.camera.lookAt(fp.x, fp.y + 2.5, fp.z);
+    } else if (cs.type === 'festival_ending') {
+      const t = cs.elapsed;
+      while (cs.beats && cs.nextBeatIdx < cs.beats.length && t >= cs.beats[cs.nextBeatIdx].t) {
+        const beat = cs.beats[cs.nextBeatIdx++];
+        document.getElementById('cutscene-tag').textContent = beat.tag;
+        document.getElementById('cutscene-text').textContent = beat.short;
+        if (beat.id === 'fest_keeper_worthy') {
+          this.giftsPermanent = true;
+          this.heroes.forEach((h) => this.spawnParticles(h.pos.clone().add(new THREE.Vector3(0, 1.4, 0)), h.def.color, 16));
+        }
+        if (beat.sfx === 'dragon_chorus') {
+          this.audio.sfxDragonChorus();
+        }
+        if (beat.embrace) {
+          this.festivalEmbraced = true;
+          this.spawnParticles(new THREE.Vector3(0, 1.8, -2.2), 0xffd740, 30);
+        }
+        if (beat.dragonStay) {
+          this.festivalDragonStayed = true;
+        }
+        if (beat.id) this.dialogue?.play(beat.id).catch(() => {});
+      }
+      // Animate Renee & Keeper walking together and embracing at t=14.5..19.5
+      if (this.keeperObj && this.reneeObj && t >= 14.5) {
+        const ek = Math.min(1, (t - 14.5) / 5.0);
+        this.keeperObj.mesh.position.x = THREE.MathUtils.lerp(-2.6, -0.45, ek);
+        this.reneeObj.mesh.position.x = THREE.MathUtils.lerp(2.8, 0.45, ek);
+      }
+      // Baby dragons circling joyfully above the family
+      this.heroes.forEach((h, idx) => {
+        if (h.dragonMesh) {
+          h.dragonMesh.position.set(
+            h.pos.x + Math.cos(t * 3.5 + idx) * 1.5,
+            h.pos.y + 2.5 + Math.sin(t * 5.0 + idx) * 0.4,
+            h.pos.z + Math.sin(t * 3.5 + idx) * 1.5
+          );
+        }
+      });
+      this.camera.position.set(Math.sin(t * 0.14) * 10, 9.5, 16.5);
+      this.camera.lookAt(0, 2.2, -3.5);
     }
 
     // Update particles during cutscene too!
@@ -3347,52 +3404,177 @@ class DragonQuestGame {
     });
   }
 
+  startDragonConversationCutscene() {
+    this.mode = 'cutscene';
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('hero-dock').classList.add('hidden');
+    document.getElementById('combat-bar').classList.add('hidden');
+    document.getElementById('controls-strip').classList.add('hidden');
+    document.getElementById('boss-hud').classList.add('hidden');
+    document.getElementById('cutscene-ui').classList.remove('hidden');
+    document.getElementById('cutscene-tag').textContent = 'THE GREAT BLACK DRAGON';
+    document.getElementById('cutscene-text').textContent = 'Her anger gives out.';
+
+    const beats = [
+      { t: 0.3, id: 'l6_dragon_my_dragons', tag: 'GREAT BLACK DRAGON', short: 'Those are MY dragons!' },
+      { t: 4.5, id: 'l6_joshua_friends', tag: 'PRINCE JOSHUA', short: "They're our friends." },
+      { t: 8.0, id: 'l6_keeper_not_afraid', tag: 'THE KEEPER', short: 'They are not afraid.' },
+      { t: 12.8, id: 'l6_dragon_wanted_family', tag: 'GREAT BLACK DRAGON', short: 'I wanted a family.' },
+      { t: 19.2, id: 'l6_vanessa_kindness_1', tag: 'QUEEN VANESSA', short: 'Choose to be kind.' },
+      { t: 28.5, id: 'l6_dragon_no_one', tag: 'GREAT BLACK DRAGON', short: 'Could anyone love me?' },
+      { t: 32.0, id: 'l6_vanessa_kindness_2', tag: 'QUEEN VANESSA', short: 'Come to the festival!' },
+    ];
+
+    this.cutscene = {
+      type: 'dragon_talk',
+      elapsed: 0,
+      duration: 43.0,
+      beats,
+      nextBeatIdx: 0,
+      focusPos: this.boss ? this.boss.pos.clone() : new THREE.Vector3(0, -2, -90),
+      grantRewards: () => {
+        this.completedLevels.add(5);
+        this.highestLevel = 5;
+        this.persistSave();
+      },
+      onDone: () => {
+        this.startFestivalFinale();
+      },
+    };
+  }
+
   startFestivalFinale() {
     this.clearWorld();
-    this.mode = 'festival';
+    this.mode = 'cutscene';
+    this.giftsPermanent = false;
+    this.festivalEmbraced = false;
+    this.festivalDragonStayed = false;
+    this.festivalLanterns = [];
+
     this.scene.background = new THREE.Color(0x9bd7ff);
     this.scene.fog = new THREE.Fog(0xb6e3ff, 50, 140);
     this.addSkyBackdrop(0x47a0eb, 0xd8f3ff, true);
     this.audio.setMusicMode('festival');
-    this.audio.sfxVictory();
 
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('hero-dock').classList.add('hidden');
+    document.getElementById('combat-bar').classList.add('hidden');
+    document.getElementById('controls-strip').classList.add('hidden');
     document.getElementById('boss-hud').classList.add('hidden');
-    document.getElementById('hud-level-badge').textContent = 'FINALE';
-    document.getElementById('hud-level-name').textContent = 'Spring Mountain Festival';
-    document.getElementById('hud-objective').textContent =
-      `🎉 Celebration! ${this.inventory.gold} Gold Berries decorating the Castle Courtyard! (Esc for Level Select)`;
+    document.getElementById('cutscene-ui').classList.remove('hidden');
+    document.getElementById('cutscene-tag').textContent = 'SPRING MOUNTAIN FESTIVAL';
+    document.getElementById('cutscene-text').textContent = 'The courtyard glows with lanterns!';
 
-    this.addGroundSegment(0, 0, 48, 48, 'festival', 0);
-    this.addCastleStructure(0, 0, -15, 1.45);
-    this.addStylizedTrees([[-18, -12, 1.2], [18, -12, 1.2], [-19, 4, 1.1], [19, 4, 1.1]]);
-    [['deer', -11, 4], ['rabbit', 10, 6], ['rabbit', -8, -4], ['deer', 12, -5]].forEach(([k, wx, wz]) =>
+    this.addGroundSegment(0, 0, 52, 52, 'festival', 0);
+    this.addCastleStructure(0, 0, -16, 1.45);
+    this.addStylizedTrees([[-19, -12, 1.2], [19, -12, 1.2], [-20, 4, 1.1], [20, 4, 1.1]]);
+    [['deer', -12, 5], ['rabbit', 11, 7], ['rabbit', -9, -4], ['deer', 13, -5]].forEach(([k, wx, wz]) =>
       this.addPeacefulAnimal(k, wx, wz)
     );
 
-    const decoCount = Math.max(6, this.inventory.gold * 2 + 6);
+    // One pair of lanterns (2 lanterns) for EVERY Gold Berry found!
+    const goldFound = Math.max(0, this.collectedGoldIds.size || this.inventory.gold || 0);
+    this.inventory.gold = goldFound;
     const colors = [0xff5252, 0xffd740, 0x40c4ff, 0x69f0ae, 0xe040fb];
-    for (let i = 0; i < decoCount; i++) {
-      const angle = (i / decoCount) * Math.PI * 2;
-      const dist = 10.5 + (i % 3) * 3.8;
-      const dx = Math.cos(angle) * dist;
-      const dz = Math.sin(angle) * dist * 0.8 + 2;
-      const pole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.1, 0.12, 4.4, 6),
-        new THREE.MeshStandardMaterial({ color: 0xf5c953, metalness: 0.55 })
-      );
-      pole.position.set(dx, 2.2, dz);
-      const lantern = new THREE.Mesh(
-        new THREE.SphereGeometry(0.48, 10, 10),
-        new THREE.MeshStandardMaterial({ color: colors[i % colors.length], emissive: colors[i % colors.length], emissiveIntensity: 0.8 })
-      );
-      lantern.position.set(dx, 4.5, dz);
-      this.worldGroup.add(pole, lantern);
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0xf5c953, metalness: 0.55 });
+    for (let pairIdx = 0; pairIdx < goldFound; pairIdx++) {
+      const baseAngle = (pairIdx / Math.max(1, goldFound)) * Math.PI * 2;
+      const dist = 11.0 + (pairIdx % 3) * 3.2;
+      for (const side of [-1, 1]) {
+        const angle = baseAngle + side * 0.08;
+        const dx = Math.cos(angle) * dist;
+        const dz = Math.sin(angle) * dist * 0.8 + 1.5;
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 4.2, 6), poleMat);
+        pole.position.set(dx, 2.1, dz);
+        const col = colors[(pairIdx * 2 + (side > 0 ? 1 : 0)) % colors.length];
+        const lantern = new THREE.Mesh(
+          new THREE.SphereGeometry(0.45, 10, 10),
+          new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.85 })
+        );
+        lantern.position.set(dx, 4.4, dz);
+        this.worldGroup.add(pole, lantern);
+        this.festivalLanterns.push({ pairIdx, pole, lantern });
+      }
     }
+
+    // Freed forest guardians celebrating peacefully around the courtyard!
+    const guestSpecs = [
+      ['bear', -14, -6],
+      ['vine', 14, -6],
+      ['magma', -15, 1],
+      ['yeti', 15, 1],
+      ['gargoyle', -11, -11],
+    ];
+    guestSpecs.forEach(([type, gx, gz]) => {
+      const m = this.createBossRenderable(type);
+      m.scale.setScalar(0.68);
+      m.position.set(gx, 0, gz);
+      m.rotation.y = Math.atan2(-gx, -gz);
+      this.worldGroup.add(m);
+    });
+
+    // The Great Black Dragon staying peacefully as Protector of the Kingdom!
+    const dragonMesh = this.createBossRenderable('black_dragon');
+    dragonMesh.scale.setScalar(0.75);
+    dragonMesh.position.set(9.5, 0, -9.5);
+    dragonMesh.rotation.y = -0.7;
+    this.worldGroup.add(dragonMesh);
+
+    // Keeper & Renee in the courtyard, ready to reunite & embrace!
+    this.spawnKeeperOfTheForest(-2.6, -2.2);
+    const reneeMesh = this.createReneeRenderable();
+    reneeMesh.position.set(2.8, 0, -2.2);
+    reneeMesh.rotation.y = -Math.PI / 2;
+    this.worldGroup.add(reneeMesh);
+    this.reneeObj = { mesh: reneeMesh, pos: reneeMesh.position.clone(), greeted: true };
 
     this.bondedDragons = [true, true, true, true];
     this.spawnHeroes();
     this.updateHUD();
-    this.showAlert(`🎉 Welcome to the Spring Mountain Festival! (${this.inventory.gold} Gold Berries Collected!)`, 6.0);
+
+    const beats = [
+      { t: 0.5, id: 'fest_keeper_worthy', tag: 'THE KEEPER', short: 'The gifts are yours forever!' },
+      { t: 7.5, id: 'fest_daniel_stay', tag: 'PRINCE DANIEL', short: 'Can the dragons stay?' },
+      { t: 10.0, id: 'fest_keeper_ask', tag: 'THE KEEPER', short: 'Ask them.' },
+      { t: 12.0, sfx: 'dragon_chorus', tag: 'FOUR BABY DRAGONS', short: 'Happy dragon chirps fill the air!' },
+      { t: 14.5, id: 'fest_renee_home', tag: 'RENEE', short: 'Time for me to come home.' },
+      { t: 19.5, id: 'fest_keeper_missed', tag: 'REUNITED', short: 'I have missed you, my love.', embrace: true },
+      { t: 23.0, id: 'fest_dragon_nice', tag: 'PROTECTOR OF THE KINGDOM', short: 'A rather nice festival.', dragonStay: true },
+      { t: 26.8, id: 'fest_narrator_close', tag: 'HAPPILY EVER AFTER', short: 'They lived happily ever after.' },
+    ];
+
+    const grantFestivalEnding = () => {
+      this.giftsPermanent = true;
+      this.festivalEmbraced = true;
+      this.festivalDragonStayed = true;
+      if (this.keeperObj && this.reneeObj) {
+        this.keeperObj.mesh.position.set(-0.45, 0, -2.2);
+        this.reneeObj.mesh.position.set(0.45, 0, -2.2);
+      }
+    };
+
+    this.cutscene = {
+      type: 'festival_ending',
+      elapsed: 0,
+      duration: 44.0,
+      beats,
+      nextBeatIdx: 0,
+      dragonMesh,
+      grantRewards: grantFestivalEnding,
+      onDone: () => {
+        grantFestivalEnding();
+        this.mode = 'festival';
+        document.getElementById('hud').classList.remove('hidden');
+        document.getElementById('hero-dock').classList.remove('hidden');
+        document.getElementById('combat-bar').classList.remove('hidden');
+        document.getElementById('controls-strip').classList.remove('hidden');
+        document.getElementById('hud-level-badge').textContent = 'FINALE';
+        document.getElementById('hud-level-name').textContent = 'Spring Mountain Festival';
+        document.getElementById('hud-objective').textContent = `${goldFound} Gold Berry lantern pairs glowing!`;
+        this.updateHUD();
+        this.showAlert(`Festival! ${goldFound} lantern pairs glowing!`, 5.0);
+      },
+    };
   }
 
   // ============================================================================
@@ -3848,7 +4030,7 @@ class DragonQuestGame {
         this.completedLevels.add(5);
         this.highestLevel = 5;
         this.persistSave();
-        setTimeout(() => this.showStoryModal(def.outroStory, () => this.startFestivalFinale()), 950);
+        this.startDragonConversationCutscene();
       }
     }
   }

@@ -191,3 +191,10 @@ Base commit: `db7f6b9`
 - **Checks:** `npm test stage4` — verified Level 1 Bear-freed (`l1_keeper_bear_freed`) & Keeper reunion (`l1_keeper_reunion` carrying Renee's news from the castle), Level 3 entry (`l3_daniel_hot`) & Ember Golem freed (`l3_keeper_golem_freed` carrying Renee's news), and Level 6 castle door spawning Renee (`reneeObj`) who greets the family (`l6_renee_welcome`).
 - **Result:** PASS (2 passed, 0 failed in stage4)
 - **Choices:** Placed Renee at `(0, 2.0, 8.8)` right in front of the Royal Castle door in Level 6; triggered level-entry family lines (`l3_daniel_hot`, `l4_michael_warm`, `l5_joshua_turn`, `l6_renee_welcome`) via `playLevelStartDialogue(idx)`.
+
+### 4.3 The festival
+- **Started:** 2026-11-25T02:45:45Z
+- **Finished:** 2026-11-25T02:47:10Z
+- **Checks:** `npm test stage4` — finished Level 6 with 3 gold berries (verified 6 lanterns = 3 pairs) and with all 18 gold berries (verified 36 lanterns = 18 pairs); verified the Level 6 closing conversation (7 lines) and Festival ending (7 spoken lines + baby dragon chorus) play in the exact story-draft order: Keeper makes gifts permanent, Daniel asks if dragons can stay, chorus of dragon chirps, Renee and Keeper reunite and embrace, Great Black Dragon stays, and Narrator closes.
+- **Result:** PASS (3 passed, 0 failed in stage4)
+- **Choices:** Built `startDragonConversationCutscene()` flowing straight into `startFestivalFinale()` with all 5 freed forest guardians + Great Black Dragon + Renee + Keeper + exact `goldFound * 2` festival lanterns, then transitioning into the playable Festival Courtyard.

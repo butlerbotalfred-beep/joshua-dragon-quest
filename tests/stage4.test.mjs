@@ -119,5 +119,86 @@ export async function runStage4Tests(browser, baseUrl) {
     }
   }
 
+  // Milestone 4.3: Festival ending plays in story-draft order & lantern pairs match gold berries found (3 -> 6 lanterns, 18 -> 36 lanterns)
+  {
+    const name = '4.3: Festival ending plays in story order (permanent gifts, embrace, dragon stays, narrator) & lanterns match gold berries (3->6, 18->36)';
+    const session = await openGame(browser, baseUrl, { waitForAssets: false });
+    try {
+      const { page } = session;
+
+      const runWithBerries = async (berryCount) => {
+        return page.evaluate(async (count) => {
+          const g = window.game;
+          await g.dialogue.load();
+          g.resetSave();
+          g.bondedDragons = [true, true, true, true];
+          const ids = [];
+          for (let i = 1; i <= count; i++) ids.push(`g_${i}`);
+          g.collectedGoldIds = new Set(ids);
+          g.inventory.gold = count;
+
+          g.startLevel(5, false); // Level 6
+          g.dialogue.playedHistory = [];
+          // Complete Level 6 encounter -> triggers dragon conversation -> Festival ending!
+          g.boss.hp = 1;
+          g.damageBoss(10, 'titan', true);
+          // Watch Level 6 dragon conversation (44s) -> enters Festival ending
+          g.step(44.0, 1 / 30, false);
+          // Watch Festival ending to completion (45s)
+          g.step(45.0, 1 / 30, false);
+
+          const playedIds = g.dialogue.playedHistory.map((p) => p.id);
+          return {
+            playedIds,
+            lanternCount: g.festivalLanterns.length,
+            lanternPairs: g.festivalLanterns.length / 2,
+            giftsPermanent: g.giftsPermanent,
+            festivalEmbraced: g.festivalEmbraced,
+            festivalDragonStayed: g.festivalDragonStayed,
+            modeAfter: g.mode,
+          };
+        }, berryCount);
+      };
+
+      const run3 = await runWithBerries(3);
+      assert.equal(run3.lanternCount, 6, `With 3 gold berries expected 6 lanterns (3 pairs), got ${run3.lanternCount}`);
+      assert.equal(run3.giftsPermanent, true, 'Keeper must make gifts permanent');
+      assert.equal(run3.festivalEmbraced, true, 'Renee and Keeper must reunite and embrace');
+      assert.equal(run3.festivalDragonStayed, true, 'Great Black Dragon must stay for the festival');
+      assert.equal(run3.modeAfter, 'festival', 'Ending should transition into playable festival courtyard');
+
+      // Verify exact story-draft sequence order for both Level 6 conversation and Festival ending!
+      const expectedOrder = [
+        'l6_dragon_my_dragons',
+        'l6_joshua_friends',
+        'l6_keeper_not_afraid',
+        'l6_dragon_wanted_family',
+        'l6_vanessa_kindness_1',
+        'l6_dragon_no_one',
+        'l6_vanessa_kindness_2',
+        'fest_keeper_worthy',
+        'fest_daniel_stay',
+        'fest_keeper_ask',
+        'fest_renee_home',
+        'fest_keeper_missed',
+        'fest_dragon_nice',
+        'fest_narrator_close',
+      ];
+      let prevPos = -1;
+      for (const id of expectedOrder) {
+        const pos = run3.playedIds.indexOf(id);
+        assert.ok(pos > prevPos, `Line ${id} missing or out of order in [${run3.playedIds.join(', ')}]`);
+        prevPos = pos;
+      }
+
+      const run18 = await runWithBerries(18);
+      assert.equal(run18.lanternCount, 36, `With 18 gold berries expected 36 lanterns (18 pairs), got ${run18.lanternCount}`);
+      assert.equal(session.getErrors().length, 0, `Errors: ${session.getErrors().join('; ')}`);
+      results.push({ name: `${name} (3->${run3.lanternCount}, 18->${run18.lanternCount})`, pass: true });
+    } finally {
+      await session.close();
+    }
+  }
+
   return results;
 }
